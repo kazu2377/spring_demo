@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダッシュボード - Spring Demo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav">
+                <h1>Spring Demo Dashboard</h1>
+                <div class="user-info">
+                    <span>ようこそ、<strong th:text="${username}"></strong>さん!</span>
+                    <span th:if="${isAdmin}" class="role-badge role-admin">管理者</span>
+                    <span th:unless="${isAdmin}" class="role-badge role-user">一般ユーザー</span>
+                    <form th:action="@{/logout}" method="post" class="logout-form" style="margin-left: 15px;">
+                        <button type="submit" class="btn btn-warning">ログアウト</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-card">
+            <h3>メインダッシュボード</h3>
+            <p>こちらがメインのダッシュボード画面です。</p>
+            <p>ログインユーザー: <strong th:text="${username}"></strong></p>
+            <p>権限レベル: <span th:text="${isAdmin} ? '管理者' : '一般ユーザー'"></span></p>
+        </div>
+        
+        <!-- 管理者専用セクション -->
+        <div th:if="${isAdmin}" class="admin-section">
+            <h3>🔧 管理者メニュー</h3>
+            <p>管理者として以下の機能にアクセスできます:</p>
+            <div style="margin-top: 20px;">
+                <a th:href="@{/admin}" class="btn btn-primary">管理画面トップ</a>
+                <a th:href="@{/admin/users}" class="btn btn-success">ユーザー管理</a>
+                <a href="/h2-console" target="_blank" class="btn btn-warning">H2データベースコンソール</a>
+            </div>
+        </div>
+        
+        <!-- 一般ユーザー向け情報 -->
+        <div th:unless="${isAdmin}" class="dashboard-card">
+            <h3>📋 利用可能な機能</h3>
+            <p>一般ユーザーとして以下の機能を利用できます:</p>
+            <ul>
+                <li>ダッシュボードの閲覧</li>
+                <li>個人設定の変更</li>
+                <li>レポートの表示</li>
+            </ul>
+            <p><em>管理機能にアクセスするには管理者権限が必要です。</em></p>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>📊 システム情報</h3>
+            <p>現在の日時: <span th:text="${#dates.format(#dates.createNow(), 'yyyy年MM月dd日 HH:mm:ss')}"></span></p>
+            <p>Spring Boot バージョン: 3.2.0</p>
+            <p>データベース: H2 (インメモリ)</p>
+        </div>
+    </div>
+</body>
+</html>

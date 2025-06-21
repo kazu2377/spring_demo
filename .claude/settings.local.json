@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(mvn clean:*)"
+    ],
+    "deny": []
+  }
+}

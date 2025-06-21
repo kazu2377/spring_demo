@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理画面 - Spring Demo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav">
+                <h1>🔧 管理画面</h1>
+                <div>
+                    <a th:href="@{/dashboard}" class="btn">ダッシュボードに戻る</a>
+                    <form th:action="@{/logout}" method="post" class="logout-form" style="margin-left: 15px;">
+                        <button type="submit" class="btn btn-warning">ログアウト</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-card">
+            <h3>管理機能一覧</h3>
+            <p>管理者として以下の機能を利用できます:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+                <div class="dashboard-card">
+                    <h4>👥 ユーザー管理</h4>
+                    <p>システムのユーザーアカウントを管理します。</p>
+                    <ul>
+                        <li>ユーザーの一覧表示</li>
+                        <li>新規ユーザーの作成</li>
+                        <li>ユーザー権限の変更</li>
+                        <li>ユーザーの削除</li>
+                    </ul>
+                    <a th:href="@{/admin/users}" class="btn btn-primary">ユーザー管理画面へ</a>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h4>🗄️ データベース管理</h4>
+                    <p>H2データベースコンソールにアクセスします。</p>
+                    <ul>
+                        <li>テーブル構造の確認</li>
+                        <li>SQLクエリの実行</li>
+                        <li>データの直接編集</li>
+                        <li>デバッグ用途</li>
+                    </ul>
+                    <a href="/h2-console" target="_blank" class="btn btn-warning">H2コンソールを開く</a>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h4>📊 システム統計</h4>
+                    <p>システムの利用統計を表示します。</p>
+                    <ul>
+                        <li>登録ユーザー数</li>
+                        <li>ログイン履歴</li>
+                        <li>アクセス統計</li>
+                        <li>エラーログ</li>
+                    </ul>
+                    <a href="#" class="btn btn-success" onclick="alert('この機能は実装予定です')">統計画面へ</a>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h4>⚙️ システム設定</h4>
+                    <p>システム全体の設定を管理します。</p>
+                    <ul>
+                        <li>アプリケーション設定</li>
+                        <li>セキュリティ設定</li>
+                        <li>メール設定</li>
+                        <li>バックアップ設定</li>
+                    </ul>
+                    <a href="#" class="btn btn-success" onclick="alert('この機能は実装予定です')">設定画面へ</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>🚨 重要なお知らせ</h3>
+            <div class="alert alert-error">
+                <strong>注意:</strong> 管理者権限では重要なシステム機能にアクセスできます。操作には十分注意してください。
+            </div>
+            <div class="alert alert-success">
+                <strong>開発環境:</strong> H2データベースを使用しています。データはアプリケーション再起動時にリセットされます。
+            </div>
+        </div>
+    </div>
+</body>
+</html>

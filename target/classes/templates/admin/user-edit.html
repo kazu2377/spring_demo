@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー編集 - Spring Demo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav">
+                <h1>✏️ ユーザー編集</h1>
+                <div>
+                    <a th:href="@{/admin/users}" class="btn">ユーザー一覧に戻る</a>
+                    <a th:href="@{/admin}" class="btn">管理画面</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-card">
+            <h3>ユーザー情報の編集</h3>
+            
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                <p><strong>ユーザーID:</strong> <span th:text="${user.id}"></span></p>
+                <p><strong>ユーザー名:</strong> <span th:text="${user.username}"></span></p>
+                <p><strong>現在の権限:</strong> 
+                    <span th:class="${user.role == T(com.example.demo.entity.Role).ADMIN} ? 'role-badge role-admin' : 'role-badge role-user'"
+                          th:text="${user.role == T(com.example.demo.entity.Role).ADMIN} ? '管理者' : '一般ユーザー'"></span>
+                </p>
+            </div>
+            
+            <form th:action="@{/admin/users/{id}(id=${user.id})}" method="post">
+                <div class="form-group">
+                    <label for="role">新しい権限 <span style="color: red;">*</span></label>
+                    <select id="role" name="role" required>
+                        <option th:each="role : ${roles}" 
+                                th:value="${role}" 
+                                th:text="${role == T(com.example.demo.entity.Role).ADMIN} ? '管理者' : '一般ユーザー'"
+                                th:selected="${role == user.role}"></option>
+                    </select>
+                    <small style="color: #666;">ユーザーの権限レベルを変更できます</small>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success">変更を保存</button>
+                    <a th:href="@{/admin/users}" class="btn" style="margin-left: 10px;">キャンセル</a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>📝 権限について</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4>👑 管理者権限</h4>
+                    <ul>
+                        <li>全ての管理機能にアクセス</li>
+                        <li>ユーザー管理（作成・編集・削除）</li>
+                        <li>システム設定の変更</li>
+                        <li>データベースへの直接アクセス</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>👤 一般ユーザー権限</h4>
+                    <ul>
+                        <li>ダッシュボードの閲覧</li>
+                        <li>個人設定の変更</li>
+                        <li>レポートの表示</li>
+                        <li>基本機能の利用</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>⚠️ 重要な注意事項</h3>
+            <div class="alert alert-error">
+                <ul style="margin: 0;">
+                    <li>権限変更は即座に反映されます</li>
+                    <li>管理者権限を持つユーザーが0人になると、システム管理ができなくなります</li>
+                    <li>権限変更は操作ログに記録されます</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

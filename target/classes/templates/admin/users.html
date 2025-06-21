@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー管理 - Spring Demo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav">
+                <h1>👥 ユーザー管理</h1>
+                <div>
+                    <a th:href="@{/admin}" class="btn">管理画面に戻る</a>
+                    <a th:href="@{/dashboard}" class="btn">ダッシュボード</a>
+                    <form th:action="@{/logout}" method="post" class="logout-form" style="margin-left: 15px;">
+                        <button type="submit" class="btn btn-warning">ログアウト</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div th:if="${successMessage}" class="alert alert-success">
+            <span th:text="${successMessage}"></span>
+        </div>
+        
+        <div th:if="${errorMessage}" class="alert alert-error">
+            <span th:text="${errorMessage}"></span>
+        </div>
+        
+        <div class="dashboard-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>ユーザー一覧</h3>
+                <a th:href="@{/admin/users/new}" class="btn btn-success">新規ユーザー作成</a>
+            </div>
+            
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ユーザー名</th>
+                        <th>ロール</th>
+                        <th>ステータス</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="user : ${users}">
+                        <td th:text="${user.id}"></td>
+                        <td th:text="${user.username}"></td>
+                        <td>
+                            <span th:class="${user.role == T(com.example.demo.entity.Role).ADMIN} ? 'role-badge role-admin' : 'role-badge role-user'"
+                                  th:text="${user.role == T(com.example.demo.entity.Role).ADMIN} ? '管理者' : '一般ユーザー'"></span>
+                        </td>
+                        <td>
+                            <span th:text="${user.enabled} ? '有効' : '無効'"></span>
+                        </td>
+                        <td>
+                            <a th:href="@{/admin/users/{id}/edit(id=${user.id})}" class="btn btn-primary" style="margin-right: 5px;">編集</a>
+                            <form th:action="@{/admin/users/{id}/delete(id=${user.id})}" method="post" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('本当にこのユーザーを削除しますか？');">
+                                <button type="submit" class="btn btn-danger">削除</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div th:if="${#lists.isEmpty(users)}" style="text-align: center; padding: 40px; color: #666;">
+                <p>ユーザーが登録されていません。</p>
+                <a th:href="@{/admin/users/new}" class="btn btn-primary">最初のユーザーを作成</a>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>📝 ユーザー管理について</h3>
+            <ul>
+                <li><strong>新規作成:</strong> 新しいユーザーアカウントを作成できます</li>
+                <li><strong>編集:</strong> 既存ユーザーの権限を変更できます</li>
+                <li><strong>削除:</strong> ユーザーアカウントを削除できます（注意：元に戻せません）</li>
+                <li><strong>ロール:</strong> 一般ユーザーと管理者の2つの権限レベルがあります</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規ユーザー作成 - Spring Demo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav">
+                <h1>➕ 新規ユーザー作成</h1>
+                <div>
+                    <a th:href="@{/admin/users}" class="btn">ユーザー一覧に戻る</a>
+                    <a th:href="@{/admin}" class="btn">管理画面</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="dashboard-card">
+            <h3>ユーザー情報を入力してください</h3>
+            
+            <form th:action="@{/admin/users}" method="post">
+                <div class="form-group">
+                    <label for="username">ユーザー名 <span style="color: red;">*</span></label>
+                    <input type="text" id="username" name="username" required 
+                           placeholder="ユーザー名を入力してください" maxlength="50">
+                    <small style="color: #666;">英数字のみ使用可能です</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">パスワード <span style="color: red;">*</span></label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="パスワードを入力してください" minlength="4">
+                    <small style="color: #666;">4文字以上で入力してください</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">ユーザー権限 <span style="color: red;">*</span></label>
+                    <select id="role" name="role" required>
+                        <option value="">権限を選択してください</option>
+                        <option th:each="role : ${roles}" th:value="${role}" th:text="${role == T(com.example.demo.entity.Role).ADMIN} ? '管理者' : '一般ユーザー'"></option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success">ユーザーを作成</button>
+                    <a th:href="@{/admin/users}" class="btn" style="margin-left: 10px;">キャンセル</a>
+                </div>
+            </form>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>⚠️ 注意事項</h3>
+            <ul>
+                <li><strong>ユーザー名:</strong> システム内で一意である必要があります</li>
+                <li><strong>パスワード:</strong> 作成後は暗号化されて保存されます</li>
+                <li><strong>管理者権限:</strong> すべての管理機能にアクセスできます</li>
+                <li><strong>一般ユーザー:</strong> ダッシュボードと基本機能のみアクセス可能</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
