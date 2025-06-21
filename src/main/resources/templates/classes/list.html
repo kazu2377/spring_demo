@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クラス管理 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link active" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chalkboard"></i> クラス管理</h2>
+            <div>
+                <a href="/classes/current" class="btn btn-info me-2">
+                    <i class="fas fa-play"></i> 実施中クラス
+                </a>
+                <a href="/classes/new" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 新規作成
+                </a>
+            </div>
+        </div>
+
+        <!-- 検索 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="search" class="form-label">クラス名・科目検索</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   th:value="${search}" placeholder="クラス名または科目名で検索">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-search"></i> 検索
+                            </button>
+                            <a href="/classes" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> クリア
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 成功・エラーメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- クラスリスト -->
+        <div class="row">
+            <div th:if="${#lists.isEmpty(classes)}" class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chalkboard fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">クラスが見つかりませんでした</h5>
+                        <p class="text-muted">新しいクラスを作成するか、検索条件を変更してください。</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div th:each="class : ${classes}" class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" th:text="${class.className}"></h5>
+                        <div>
+                            <span th:if="${class.active}" class="badge bg-success">有効</span>
+                            <span th:unless="${class.active}" class="badge bg-secondary">無効</span>
+                            <span th:if="${class.classInProgress}" class="badge bg-primary ms-1">実施中</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>科目:</strong> <span th:text="${class.subject}"></span>
+                        </div>
+                        <div class="mb-2" th:if="${class.description}">
+                            <strong>説明:</strong> 
+                            <small class="text-muted" th:text="${class.description}"></small>
+                        </div>
+                        <div class="mb-2">
+                            <strong>講師:</strong> 
+                            <span th:text="${class.teacher?.username ?: '未割当'}" 
+                                  th:class="${class.teacher} ? '' : 'text-muted'"></span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>期間:</strong><br>
+                            <small>
+                                <span th:text="${#temporals.format(class.startDate, 'yyyy/MM/dd')}"></span> - 
+                                <span th:text="${#temporals.format(class.endDate, 'yyyy/MM/dd')}"></span>
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <strong>受講生数:</strong> 
+                            <span th:text="${class.currentStudentCount}"></span>
+                            <span th:if="${class.maxStudents}">
+                                / <span th:text="${class.maxStudents}"></span>
+                            </span>
+                            <span th:unless="${class.maxStudents}">名</span>
+                        </div>
+                        
+                        <!-- 進捗バー -->
+                        <div th:if="${class.maxStudents and class.maxStudents > 0}" class="mb-3">
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar" 
+                                     th:style="'width: ' + (${class.currentStudentCount} * 100 / ${class.maxStudents}) + '%'"
+                                     th:classappend="${class.currentStudentCount >= class.maxStudents} ? 'bg-warning' : 'bg-info'">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100">
+                            <a th:href="@{/classes/{id}(id=${class.id})}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i> 詳細
+                            </a>
+                            <a th:href="@{/students?classId={id}(id=${class.id})}" 
+                               class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-users"></i> 受講生
+                            </a>
+                            <a th:href="@{/attendance?classId={id}(id=${class.id})}" 
+                               class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-calendar-check"></i> 出席
+                            </a>
+                            <a th:href="@{/tests?classId={id}(id=${class.id})}" 
+                               class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-clipboard-list"></i> テスト
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

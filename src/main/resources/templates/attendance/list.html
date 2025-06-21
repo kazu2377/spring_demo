@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出欠席管理 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link active" href="/attendance">出欠席</a>
+                <a class="nav-link" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-calendar-check"></i> 出欠席管理</h2>
+            <a href="/attendance/reports" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> レポート
+            </a>
+        </div>
+
+        <!-- 日付・クラス選択 -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">日付</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   th:value="${selectedDate}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="classId" class="form-label">クラス</label>
+                            <select class="form-select" id="classId" name="classId" required>
+                                <option value="">クラスを選択してください</option>
+                                <option th:each="class : ${classes}" 
+                                        th:value="${class.id}" 
+                                        th:text="${class.className}"
+                                        th:selected="${class.id == selectedClassId}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> 表示
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 成功・エラーメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- 出欠席入力フォーム -->
+        <div th:if="${schoolClass and students}" class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chalkboard"></i> 
+                    <span th:text="${schoolClass.className}"></span> - 
+                    <span th:text="${#temporals.format(selectedDate, 'yyyy年MM月dd日')}"></span>
+                </h5>
+                <div>
+                    <!-- 一括処理ボタン -->
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-success" 
+                                onclick="setBulkStatus('PRESENT')">
+                            <i class="fas fa-check"></i> 全員出席
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" 
+                                onclick="setBulkStatus('ABSENT')">
+                            <i class="fas fa-times"></i> 全員欠席
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/attendance/record}" method="post">
+                    <input type="hidden" name="classId" th:value="${schoolClass.id}">
+                    <input type="hidden" name="date" th:value="${selectedDate}">
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>学籍番号</th>
+                                    <th>氏名</th>
+                                    <th>出欠席</th>
+                                    <th>備考</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="student : ${students}">
+                                    <td th:text="${student.studentNumber}"></td>
+                                    <td th:text="${student.fullName}"></td>
+                                    <td>
+                                        <select th:name="'attendance_' + ${student.id}" 
+                                                class="form-select form-select-sm attendance-select">
+                                            <option value="">選択してください</option>
+                                            <option th:each="status : ${attendanceStatuses}" 
+                                                    th:value="${status}" 
+                                                    th:text="${status.displayName}"
+                                                    th:selected="${attendanceMap.get(student.id)?.status == status}"></option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" 
+                                               th:name="'notes_' + ${student.id}" 
+                                               class="form-control form-control-sm"
+                                               th:value="${attendanceMap.get(student.id)?.notes}"
+                                               placeholder="備考">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> 出席記録を保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- クラスが選択されていない場合 -->
+        <div th:unless="${schoolClass}" class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">日付とクラスを選択してください</h5>
+                <p class="text-muted">出欠席を管理するクラスと日付を上記のフォームで選択してください。</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function setBulkStatus(status) {
+            const selects = document.querySelectorAll('.attendance-select');
+            selects.forEach(select => {
+                select.value = status;
+            });
+        }
+
+        // 今日の日付をデフォルトに設定
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('date');
+            if (!dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>受講生ダッシュボード - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">職業訓練校システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/student/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/student/scores">成績確認</a>
+                <a class="nav-link" href="/student/attendance">出席状況</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- ウェルカムメッセージ -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h3 class="mb-1">
+                                    <i class="fas fa-user-graduate"></i> 
+                                    こんにちは、<span th:text="${student?.fullName ?: 'ゲスト'}"></span>さん
+                                </h3>
+                                <p class="mb-0" th:if="${student?.schoolClass}">
+                                    <i class="fas fa-chalkboard"></i> 
+                                    クラス: <span th:text="${student.schoolClass.className}"></span>
+                                </p>
+                                <p class="mb-0" th:unless="${student?.schoolClass}" class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> 
+                                    クラスが割り当てられていません
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <i class="fas fa-graduation-cap fa-4x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <div th:if="${error}" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+        </div>
+
+        <!-- メイン情報（受講生データがある場合のみ表示） -->
+        <div th:if="${student}">
+            <!-- 統計カード -->
+            <div class="row mb-4">
+                <!-- 出席率 -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <div class="text-success">
+                                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                            </div>
+                            <h4 class="text-success" th:text="${#numbers.formatDecimal(attendanceSummary.attendanceRate, 1, 1)} + '%'">0%</h4>
+                            <p class="text-muted mb-0">出席率</p>
+                            <small class="text-muted">
+                                <span th:text="${attendanceSummary.presentDays}"></span> / 
+                                <span th:text="${attendanceSummary.totalDays}"></span> 日
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 平均点 -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center">
+                            <div class="text-primary">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            </div>
+                            <h4 class="text-primary" th:text="${#numbers.formatDecimal(gradeReport.averageScore, 1, 1)}">0</h4>
+                            <p class="text-muted mb-0">平均点</p>
+                            <small class="text-muted">全テスト平均</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 合格率 -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center">
+                            <div class="text-warning">
+                                <i class="fas fa-trophy fa-2x mb-2"></i>
+                            </div>
+                            <h4 class="text-warning" th:text="${#numbers.formatDecimal(gradeReport.passingRate, 1, 1)} + '%'">0%</h4>
+                            <p class="text-muted mb-0">合格率</p>
+                            <small class="text-muted">
+                                <span th:text="${gradeReport.passedTests}"></span> / 
+                                <span th:text="${gradeReport.totalTests}"></span> テスト
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 総テスト数 -->
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center">
+                            <div class="text-info">
+                                <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                            </div>
+                            <h4 class="text-info" th:text="${gradeReport.totalTests}">0</h4>
+                            <p class="text-muted mb-0">受験テスト数</p>
+                            <small class="text-muted">累計</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- 最近の成績 -->
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 最近の成績</h5>
+                            <a href="/student/scores" class="btn btn-outline-primary btn-sm">
+                                全て見る <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${#lists.isEmpty(recentScores)}" class="text-center text-muted py-4">
+                                <i class="fas fa-clipboard fa-2x mb-2"></i>
+                                <p>まだテスト結果がありません</p>
+                            </div>
+                            <div th:unless="${#lists.isEmpty(recentScores)}">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>テスト名</th>
+                                                <th>実施日</th>
+                                                <th>点数</th>
+                                                <th>評価</th>
+                                                <th>合否</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="score, iterStat : ${recentScores}" th:if="${iterStat.index < 5}">
+                                                <td th:text="${score.test.testName}"></td>
+                                                <td th:text="${#temporals.format(score.test.testDate, 'MM/dd')}"></td>
+                                                <td>
+                                                    <strong th:text="${score.score}"></strong>
+                                                    <small class="text-muted">/ <span th:text="${score.test.maxScore}"></span></small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge" th:text="${score.grade}"
+                                                          th:classappend="${score.grade == 'A'} ? 'bg-success' : 
+                                                                         (${score.grade == 'B'} ? 'bg-primary' : 
+                                                                         (${score.grade == 'C'} ? 'bg-warning' : 'bg-danger'))"></span>
+                                                </td>
+                                                <td>
+                                                    <span th:if="${score.passed}" class="badge bg-success">合格</span>
+                                                    <span th:unless="${score.passed}" class="badge bg-danger">不合格</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出席状況サマリー -->
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> 出席状況</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>出席</span>
+                                    <span th:text="${attendanceSummary.presentDays} + '日'"></span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" 
+                                         th:style="'width: ' + (${attendanceSummary.totalDays > 0 ? attendanceSummary.presentDays * 100 / attendanceSummary.totalDays : 0}) + '%'"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>遅刻</span>
+                                    <span th:text="${attendanceSummary.lateDays} + '日'"></span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" 
+                                         th:style="'width: ' + (${attendanceSummary.totalDays > 0 ? attendanceSummary.lateDays * 100 / attendanceSummary.totalDays : 0}) + '%'"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>欠席</span>
+                                    <span th:text="${attendanceSummary.absentDays} + '日'"></span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" 
+                                         th:style="'width: ' + (${attendanceSummary.totalDays > 0 ? attendanceSummary.absentDays * 100 / attendanceSummary.totalDays : 0}) + '%'"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mt-3">
+                                <a href="/student/attendance" class="btn btn-outline-info btn-sm">
+                                    詳細を見る <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
