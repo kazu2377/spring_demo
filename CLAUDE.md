@@ -1,78 +1,78 @@
 # CLAUDE.md
 
-##日本語で記載して
+## 日本語で記載
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、Claude Code (claude.ai/code) がこのリポジトリのコードを扱う際のガイダンスを提供します。
 
-## Project Overview
+## プロジェクト概要
 
-Spring Boot MVC web application with authentication and authorization using Spring Security. Uses H2 in-memory database for development and supports role-based access control (ADMIN/USER roles).
+Spring Security を使用した認証・認可機能付きの Spring Boot MVC Web アプリケーションです。開発環境では H2 インメモリデータベースを使用し、ロールベースアクセス制御（ADMIN/USER ロール）をサポートしています。
 
-## Common Commands
+## 基本コマンド
 
 ```bash
-# Build the project
+# プロジェクトをビルド
 ./mvnw clean compile
 
-# Run tests
+# テストを実行
 ./mvnw test
 
-# Run the application
+# アプリケーションを実行
 ./mvnw spring-boot:run
 
-# Package the application
+# アプリケーションをパッケージ化
 ./mvnw clean package
 
-# Run with specific profile
+# 特定のプロファイルで実行
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-## Architecture Overview
+## アーキテクチャ概要
 
-- **MVC Pattern**: Controllers handle web requests, Services contain business logic, Repositories handle data access
-- **Security Layer**: Spring Security with form-based authentication and role-based authorization
-- **Database**: H2 in-memory database with JPA/Hibernate for ORM
-- **View Layer**: Thymeleaf templates with role-based conditional rendering
+- **MVC パターン**: コントローラーが Web リクエストを処理、サービスがビジネスロジックを担当、リポジトリがデータアクセスを処理
+- **セキュリティ層**: フォームベース認証とロールベース認可を使用した Spring Security
+- **データベース**: JPA/Hibernate による ORM を使用した H2 インメモリデータベース
+- **ビュー層**: ロールベースの条件付きレンダリングを持つ Thymeleaf テンプレート
 
-## Key Components Structure
+## 主要コンポーネント構造
 
 ```
 src/main/java/com/example/demo/
-├── config/SecurityConfig.java          # Spring Security configuration
-├── controller/                         # Web controllers
-│   ├── AuthController.java            # Authentication endpoints
-│   ├── DashboardController.java       # Main dashboard
-│   └── AdminController.java           # Admin-only endpoints
-├── entity/User.java                   # User entity with roles
-├── repository/UserRepository.java     # User data access
-├── service/UserService.java          # User business logic
-└── DemoApplication.java              # Main application class
+├── config/SecurityConfig.java          # Spring Security設定
+├── controller/                         # Webコントローラー
+│   ├── AuthController.java            # 認証エンドポイント
+│   ├── DashboardController.java       # メインダッシュボード
+│   └── AdminController.java           # 管理者専用エンドポイント
+├── entity/User.java                   # ロール付きユーザーエンティティ
+├── repository/UserRepository.java     # ユーザーデータアクセス
+├── service/UserService.java          # ユーザービジネスロジック
+└── DemoApplication.java              # メインアプリケーションクラス
 
 src/main/resources/
-├── templates/                         # Thymeleaf templates
-│   ├── login.html                    # Login page
-│   ├── dashboard.html                # Main dashboard
-│   └── admin/                        # Admin-only pages
-├── static/                           # CSS, JS, images
-└── application.properties            # App configuration
+├── templates/                         # Thymeleafテンプレート
+│   ├── login.html                    # ログインページ
+│   ├── dashboard.html                # メインダッシュボード
+│   └── admin/                        # 管理者専用ページ
+├── static/                           # CSS、JS、画像
+└── application.properties            # アプリケーション設定
 ```
 
-## Security Configuration
+## セキュリティ設定
 
-- Custom login page with form-based authentication
-- Role-based access control: ADMIN users see all features, regular users have limited access
-- Dashboard shows different content based on user role
-- Admin pages require ADMIN role access
+- フォームベース認証によるカスタムログインページ
+- ロールベースアクセス制御：ADMIN ユーザーは全機能を表示、一般ユーザーは制限付きアクセス
+- ダッシュボードはユーザーロールに基づいて異なるコンテンツを表示
+- 管理者ページは ADMIN ロールアクセスが必要
 
-## Database Setup
+## データベース設定
 
-- H2 in-memory database for development
-- User entity stores username, password (encoded), and roles
-- Default admin user should be created on startup for testing
+- 開発環境用 H2 インメモリデータベース
+- ユーザーエンティティはユーザー名、パスワード（暗号化済み）、ロールを保存
+- テスト用のデフォルト管理者ユーザーを起動時に作成する必要があります
 
-## Development Notes
+## 開発上の注意点
 
-- Use `@PreAuthorize` annotations for method-level security
-- Thymeleaf `sec:authorize` for conditional rendering based on roles
-- BCrypt password encoding for security
-- Session-based authentication with proper logout handling
+- メソッドレベルセキュリティには `@PreAuthorize` アノテーションを使用
+- ロールベースの条件付きレンダリングには Thymeleaf `sec:authorize` を使用
+- セキュリティのため BCrypt パスワード暗号化を使用
+- 適切なログアウト処理を伴うセッションベース認証
