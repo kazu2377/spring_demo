@@ -13,11 +13,24 @@ public class DashboardController {
     public String dashboard(Authentication authentication, Model model) {
         String username = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        boolean isTeacher = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_TEACHER"));
+        boolean isStudent = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"));
         
-        model.addAttribute("username", username);
-        model.addAttribute("isAdmin", isAdmin);
-        
-        return "dashboard";
+        // 役割別のダッシュボードにリダイレクト
+        if (isStudent) {
+            return "redirect:/student/dashboard";
+        } else if (isAdmin || isTeacher) {
+            // 管理者・講師は職業訓練校管理ダッシュボード
+            model.addAttribute("username", username);
+            model.addAttribute("isAdmin", isAdmin);
+            model.addAttribute("isTeacher", isTeacher);
+            return "school-dashboard";
+        } else {
+            // 従来の一般ユーザー用ダッシュボード
+            model.addAttribute("username", username);
+            model.addAttribute("isAdmin", isAdmin);
+            return "dashboard";
+        }
     }
     
     @GetMapping("/")
