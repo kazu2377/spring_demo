@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出席レポート - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link active" href="/attendance">出欠席</a>
+                <a class="nav-link" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chart-bar"></i> 出席レポート</h2>
+            <div>
+                <button class="btn btn-success" onclick="exportReports()">
+                    <i class="fas fa-download"></i> レポートエクスポート
+                </button>
+                <a href="/attendance" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 出欠席管理
+                </a>
+            </div>
+        </div>
+
+        <!-- フィルター -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-filter"></i> フィルター設定</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" th:action="@{/attendance/reports}">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="classFilter" class="form-label">クラス</label>
+                            <select class="form-select" id="classFilter" name="classId">
+                                <option value="">全クラス</option>
+                                <option th:each="class : ${classes}" 
+                                        th:value="${class.id}" 
+                                        th:text="${class.className}"
+                                        th:selected="${selectedClassId == class.id}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="startDate" class="form-label">開始日</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate" 
+                                   th:value="${startDate}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="endDate" class="form-label">終了日</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate" 
+                                   th:value="${endDate}">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="reportType" class="form-label">レポート種類</label>
+                            <select class="form-select" id="reportType" name="reportType">
+                                <option value="summary" th:selected="${reportType == 'summary'}">概要</option>
+                                <option value="detailed" th:selected="${reportType == 'detailed'}">詳細</option>
+                                <option value="trends" th:selected="${reportType == 'trends'}">傾向分析</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> レポート生成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 全体統計 -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie"></i> 全体出席統計</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center mb-4">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-success-subtle">
+                                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                    <h6>総出席率</h6>
+                                    <span class="h4" th:text="${overallStats.attendanceRate}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-warning-subtle">
+                                    <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                                    <h6>遅刻率</h6>
+                                    <span class="h4" th:text="${overallStats.lateRate}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-danger-subtle">
+                                    <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
+                                    <h6>欠席率</h6>
+                                    <span class="h4" th:text="${overallStats.absentRate}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-info-subtle">
+                                    <i class="fas fa-users text-info fa-2x mb-2"></i>
+                                    <h6>対象受講生</h6>
+                                    <span class="h4" th:text="${overallStats.totalStudents}"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- チャート -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- クラス別統計 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chalkboard"></i> クラス別出席状況</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>クラス名</th>
+                                        <th>受講生数</th>
+                                        <th>出席率</th>
+                                        <th>遅刻率</th>
+                                        <th>欠席率</th>
+                                        <th>評価</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="classStats : ${classStatistics}">
+                                        <td>
+                                            <a th:href="@{/classes/{id}(id=${classStats.classId})}" 
+                                               th:text="${classStats.className}" 
+                                               class="text-decoration-none"></a>
+                                        </td>
+                                        <td th:text="${classStats.studentCount}"></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                    <div class="progress-bar bg-success" 
+                                                         th:style="'width: ' + ${classStats.attendancePercentage} + '%'"></div>
+                                                </div>
+                                                <span class="small" th:text="${classStats.attendanceRate}"></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning" th:text="${classStats.lateRate}"></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger" th:text="${classStats.absentRate}"></span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${classStats.attendancePercentage >= 90}" 
+                                                  class="badge bg-success">優秀</span>
+                                            <span th:if="${classStats.attendancePercentage >= 80 && classStats.attendancePercentage < 90}" 
+                                                  class="badge bg-info">良好</span>
+                                            <span th:if="${classStats.attendancePercentage >= 70 && classStats.attendancePercentage < 80}" 
+                                                  class="badge bg-warning">要注意</span>
+                                            <span th:if="${classStats.attendancePercentage < 70}" 
+                                                  class="badge bg-danger">要改善</span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/attendance/reports?classId={id}(id=${classStats.classId})}" 
+                                               class="btn btn-outline-info btn-sm">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 受講生別詳細 -->
+                <div class="card" th:if="${reportType == 'detailed'}">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-users"></i> 受講生別詳細</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>学籍番号</th>
+                                        <th>氏名</th>
+                                        <th>クラス</th>
+                                        <th>出席日数</th>
+                                        <th>遅刻回数</th>
+                                        <th>欠席日数</th>
+                                        <th>出席率</th>
+                                        <th>状態</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="studentStats : ${studentStatistics}">
+                                        <td th:text="${studentStats.studentNumber}"></td>
+                                        <td>
+                                            <a th:href="@{/attendance/student/{id}(id=${studentStats.studentId})}" 
+                                               th:text="${studentStats.studentName}" 
+                                               class="text-decoration-none"></a>
+                                        </td>
+                                        <td th:text="${studentStats.className}"></td>
+                                        <td th:text="${studentStats.presentDays}"></td>
+                                        <td>
+                                            <span th:if="${studentStats.lateDays > 0}" 
+                                                  class="badge bg-warning" 
+                                                  th:text="${studentStats.lateDays}"></span>
+                                            <span th:unless="${studentStats.lateDays > 0}">-</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${studentStats.absentDays > 0}" 
+                                                  class="badge bg-danger" 
+                                                  th:text="${studentStats.absentDays}"></span>
+                                            <span th:unless="${studentStats.absentDays > 0}">-</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    <div class="progress-bar bg-success" 
+                                                         th:style="'width: ' + ${studentStats.attendancePercentage} + '%'"></div>
+                                                </div>
+                                                <span class="small" th:text="${studentStats.attendanceRate}"></span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span th:if="${studentStats.attendancePercentage >= 80}" 
+                                                  class="badge bg-success">良好</span>
+                                            <span th:if="${studentStats.attendancePercentage >= 70 && studentStats.attendancePercentage < 80}" 
+                                                  class="badge bg-warning">注意</span>
+                                            <span th:if="${studentStats.attendancePercentage < 70}" 
+                                                  class="badge bg-danger">要指導</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-4">
+                <!-- 期間情報 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-calendar"></i> レポート期間</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>開始日:</span>
+                                <span th:text="${#temporals.format(startDate, 'yyyy年MM月dd日')}"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>終了日:</span>
+                                <span th:text="${#temporals.format(endDate, 'yyyy年MM月dd日')}"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>対象期間:</span>
+                                <span th:text="${reportDays} + '日間'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>対象クラス:</span>
+                                <span th:if="${selectedClassName}" th:text="${selectedClassName}"></span>
+                                <span th:unless="${selectedClassName}">全クラス</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 要注意リスト -->
+                <div class="card mb-4" th:if="${alertStudents != null && !#lists.isEmpty(alertStudents)}">
+                    <div class="card-header bg-warning">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> 要注意受講生</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div th:each="alert : ${alertStudents}" class="mb-3 border-bottom pb-2">
+                                <div class="d-flex justify-content-between">
+                                    <strong th:text="${alert.studentName}"></strong>
+                                    <span class="badge bg-danger" th:text="${alert.attendanceRate}"></span>
+                                </div>
+                                <div class="text-muted">
+                                    <div>欠席: <span th:text="${alert.absentDays}"></span>日</div>
+                                    <div>遅刻: <span th:text="${alert.lateDays}"></span>回</div>
+                                </div>
+                                <div class="mt-1">
+                                    <a th:href="@{/attendance/student/{id}(id=${alert.studentId})}" 
+                                       class="btn btn-outline-info btn-sm">詳細</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 改善点・提案 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb"></i> 改善提案</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div th:if="${overallStats.absentPercentage > 15}" class="mb-2">
+                                <i class="fas fa-exclamation-circle text-danger me-1"></i>
+                                欠席率が高いため、早期介入プログラムの検討を推奨します。
+                            </div>
+                            <div th:if="${overallStats.latePercentage > 10}" class="mb-2">
+                                <i class="fas fa-clock text-warning me-1"></i>
+                                遅刻率が高いため、時間管理指導の強化を検討してください。
+                            </div>
+                            <div th:if="${overallStats.attendancePercentage > 90}" class="mb-2">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                優秀な出席率です。現在の取り組みを継続してください。
+                            </div>
+                            <div class="text-muted">
+                                詳細な改善計画については学生指導室にご相談ください。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- エクスポートオプション -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-download"></i> エクスポート</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-success btn-sm" onclick="exportPDF()">
+                                <i class="fas fa-file-pdf"></i> PDFレポート
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="exportExcel()">
+                                <i class="fas fa-file-excel"></i> Excelデータ
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="exportCSV()">
+                                <i class="fas fa-file-csv"></i> CSVデータ
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="sendReport()">
+                                <i class="fas fa-envelope"></i> メール送信
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const attendanceData = /*[[${chartData.attendanceData}]]*/ [70, 15, 15];
+        const trendData = /*[[${chartData.trendData}]]*/ [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+
+        function initializeCharts() {
+            // 出席率円グラフ
+            const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(attendanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['出席', '遅刻', '欠席'],
+                    datasets: [{
+                        data: attendanceData,
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '全体出席状況'
+                        }
+                    }
+                }
+            });
+
+            // 傾向グラフ
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                    datasets: [{
+                        label: '出席率',
+                        data: [85, 87, 82, 89, 91, 88],
+                        borderColor: '#28a745',
+                        tension: 0.1
+                    }, {
+                        label: '遅刻率',
+                        data: [8, 7, 10, 6, 5, 7],
+                        borderColor: '#ffc107',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '月別傾向'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportReports() {
+            alert('レポートをエクスポートします（実装予定）');
+        }
+
+        function exportPDF() {
+            alert('PDFレポートを生成します（実装予定）');
+        }
+
+        function exportExcel() {
+            alert('Excelデータをエクスポートします（実装予定）');
+        }
+
+        function exportCSV() {
+            alert('CSVデータをエクスポートします（実装予定）');
+        }
+
+        function sendReport() {
+            alert('レポートをメール送信します（実装予定）');
+        }
+
+        // 日付フィルターの初期設定
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setMonth(today.getMonth() - 1);
+            
+            if (!document.getElementById('startDate').value) {
+                document.getElementById('startDate').value = lastMonth.toISOString().split('T')[0];
+            }
+            if (!document.getElementById('endDate').value) {
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テスト詳細 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link active" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-clipboard-list"></i> テスト詳細</h2>
+            <div>
+                <a href="/tests" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 一覧に戻る
+                </a>
+                <a th:href="@{/tests/{id}/edit(id=${test.id})}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> 編集
+                </a>
+            </div>
+        </div>
+
+        <!-- 成功・エラーメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <!-- 基本情報 -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> 基本情報</h5>
+                        <div>
+                            <span th:if="${test.completed}" class="badge bg-success fs-6">実施済み</span>
+                            <span th:unless="${test.completed}" class="badge bg-warning fs-6">未実施</span>
+                            <span th:text="${test.testType}" class="badge bg-info ms-1"></span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>テスト名:</strong><br>
+                                <span class="h5" th:text="${test.testName}"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>対象クラス:</strong><br>
+                                <a th:href="@{/classes/{id}(id=${test.schoolClass.id})}" 
+                                   th:text="${test.schoolClass.className}" 
+                                   class="text-decoration-none"></a>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>実施日:</strong><br>
+                                <span th:text="${#temporals.format(test.testDate, 'yyyy年MM月dd日')}"></span>
+                                <span th:if="${test.testTime}" 
+                                      th:text="' ' + ${test.testTime}" 
+                                      class="text-muted"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>制限時間:</strong><br>
+                                <span th:if="${test.duration}" th:text="${test.duration} + '分'"></span>
+                                <span th:unless="${test.duration}" class="text-muted">制限なし</span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>満点:</strong><br>
+                                <span class="h6" th:text="${test.maxScore} + '点'"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>合格点:</strong><br>
+                                <span th:if="${test.passingScore}" 
+                                      th:text="${test.passingScore} + '点'"
+                                      class="h6 text-success"></span>
+                                <span th:unless="${test.passingScore}" class="text-muted">未設定</span>
+                            </div>
+                            <div class="col-12 mb-3" th:if="${test.description}">
+                                <strong>説明・内容:</strong><br>
+                                <div class="border p-3 mt-2 bg-light">
+                                    <p class="mb-0" th:text="${test.description}"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成績一覧 -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line"></i> 成績一覧
+                            <span class="badge bg-info" th:text="${#lists.size(testScores)}"></span>
+                        </h5>
+                        <div>
+                            <a th:href="@{/tests/{id}/scores(id=${test.id})}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-edit"></i> 成績入力
+                            </a>
+                            <a th:href="@{/tests/{id}/export(id=${test.id})}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-download"></i> エクスポート
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${testScores != null && !#lists.isEmpty(testScores)}">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>学籍番号</th>
+                                            <th>氏名</th>
+                                            <th>得点</th>
+                                            <th>合格/不合格</th>
+                                            <th>入力日</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="score : ${testScores}">
+                                            <td th:text="${score.student.studentNumber}"></td>
+                                            <td>
+                                                <a th:href="@{/students/{id}(id=${score.student.id})}" 
+                                                   th:text="${score.student.fullName}" 
+                                                   class="text-decoration-none"></a>
+                                            </td>
+                                            <td>
+                                                <span class="h6" th:text="${score.score} + '/' + ${test.maxScore}"></span>
+                                                <small class="text-muted" 
+                                                       th:text="'(' + ${#numbers.formatPercent(score.score / test.maxScore, 0, 1)} + ')'"></small>
+                                            </td>
+                                            <td>
+                                                <span th:if="${test.passingScore != null}">
+                                                    <span th:if="${score.score >= test.passingScore}" 
+                                                          class="badge bg-success">合格</span>
+                                                    <span th:unless="${score.score >= test.passingScore}" 
+                                                          class="badge bg-danger">不合格</span>
+                                                </span>
+                                                <span th:unless="${test.passingScore != null}" class="text-muted">-</span>
+                                            </td>
+                                            <td th:text="${#temporals.format(score.recordedAt, 'yyyy/MM/dd')}"></td>
+                                            <td>
+                                                <a th:href="@{/tests/{testId}/scores/{studentId}(testId=${test.id}, studentId=${score.student.id})}" 
+                                                   class="btn btn-outline-info btn-sm">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div th:if="${testScores == null || #lists.isEmpty(testScores)}" 
+                             class="text-center text-muted py-4">
+                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                            <p>まだ成績が入力されていません。</p>
+                            <a th:href="@{/tests/{id}/scores(id=${test.id})}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> 成績入力を開始
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 統計情報 -->
+                <div class="card" th:if="${statistics != null}">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 統計情報</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-calculator text-primary fa-2x mb-2"></i>
+                                    <h6>平均点</h6>
+                                    <span class="h4" th:text="${#numbers.formatDecimal(statistics.averageScore, 1, 1)}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-arrow-up text-success fa-2x mb-2"></i>
+                                    <h6>最高点</h6>
+                                    <span class="h4" th:text="${statistics.maxScore}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-arrow-down text-danger fa-2x mb-2"></i>
+                                    <h6>最低点</h6>
+                                    <span class="h4" th:text="${statistics.minScore}"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-users text-info fa-2x mb-2"></i>
+                                    <h6>受験者数</h6>
+                                    <span class="h4" th:text="${statistics.totalStudents}"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row text-center" th:if="${test.passingScore != null}">
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3 bg-success-subtle">
+                                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                    <h6>合格者数</h6>
+                                    <span class="h4" th:text="${statistics.passedStudents}"></span>
+                                    <div class="small text-muted">
+                                        <span th:text="${#numbers.formatPercent(statistics.passedStudents / statistics.totalStudents, 0, 1)}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3 bg-danger-subtle">
+                                    <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
+                                    <h6>不合格者数</h6>
+                                    <span class="h4" th:text="${statistics.totalStudents - statistics.passedStudents}"></span>
+                                    <div class="small text-muted">
+                                        <span th:text="${#numbers.formatPercent((statistics.totalStudents - statistics.passedStudents) / statistics.totalStudents, 0, 1)}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作パネル -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cogs"></i> 操作</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/tests/{id}/scores(id=${test.id})}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-edit"></i> 成績入力・編集
+                            </a>
+                            <a th:href="@{/tests/{id}/results(id=${test.id})}" 
+                               class="btn btn-info">
+                                <i class="fas fa-chart-bar"></i> 詳細分析
+                            </a>
+                            <a th:href="@{/tests/{id}/export(id=${test.id})}" 
+                               class="btn btn-success">
+                                <i class="fas fa-download"></i> データエクスポート
+                            </a>
+                            <hr>
+                            <div th:if="${test.completed}">
+                                <form th:action="@{/tests/{id}/reopen(id=${test.id})}" 
+                                      method="post" 
+                                      onsubmit="return confirm('このテストを再実施状態に戻しますか？')">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="fas fa-undo"></i> 再実施に戻す
+                                    </button>
+                                </form>
+                            </div>
+                            <div th:unless="${test.completed}">
+                                <form th:action="@{/tests/{id}/complete(id=${test.id})}" 
+                                      method="post" 
+                                      onsubmit="return confirm('このテストを実施完了にしますか？')">
+                                    <button type="submit" class="btn btn-outline-success w-100">
+                                        <i class="fas fa-check"></i> 実施完了にする
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 進捗情報 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-tasks"></i> 進捗情報</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>対象受講生数:</span>
+                                <span th:text="${test.schoolClass.currentStudentCount} + '名'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>成績入力済み:</span>
+                                <span th:text="${#lists.size(testScores)} + '名'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span>未入力:</span>
+                                <span th:text="${test.schoolClass.currentStudentCount - #lists.size(testScores)} + '名'"></span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar" 
+                                     th:style="'width: ' + ${#lists.size(testScores) * 100 / test.schoolClass.currentStudentCount} + '%'"></div>
+                            </div>
+                            <div class="text-center">
+                                <span th:text="${#numbers.formatPercent(#lists.size(testScores) / test.schoolClass.currentStudentCount, 0, 0)}"></span>
+                                完了
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- テスト情報サマリー -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard"></i> テスト情報</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <span>実施日: </span>
+                                <span th:text="${#temporals.format(test.testDate, 'yyyy/MM/dd')}"></span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-clock text-info me-2"></i>
+                                <span>開始時刻: </span>
+                                <span th:if="${test.testTime}" th:text="${test.testTime}"></span>
+                                <span th:unless="${test.testTime}" class="text-muted">未設定</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-hourglass-half text-warning me-2"></i>
+                                <span>制限時間: </span>
+                                <span th:if="${test.duration}" th:text="${test.duration} + '分'"></span>
+                                <span th:unless="${test.duration}" class="text-muted">制限なし</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-trophy text-success me-2"></i>
+                                <span>満点: </span>
+                                <span th:text="${test.maxScore} + '点'"></span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>合格点: </span>
+                                <span th:if="${test.passingScore}" th:text="${test.passingScore} + '点'"></span>
+                                <span th:unless="${test.passingScore}" class="text-muted">未設定</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最近の活動 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-history"></i> 最近の活動</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-plus-circle text-success me-2"></i>
+                                <span>テスト作成: <span th:text="${#temporals.format(test.createdAt, 'yyyy/MM/dd')}"></span></span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2" th:if="${test.updatedAt != test.createdAt}">
+                                <i class="fas fa-edit text-warning me-2"></i>
+                                <span>最終更新: <span th:text="${#temporals.format(test.updatedAt, 'yyyy/MM/dd')}"></span></span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2" th:if="${test.completed}">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                <span>実施完了済み</span>
+                            </div>
+                            <div class="text-muted text-center mt-3">
+                                <i class="fas fa-info-circle"></i> 
+                                詳細な活動履歴は管理者ログで確認できます
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 統計情報の表示アニメーション
+        document.addEventListener('DOMContentLoaded', function() {
+            const statisticsCards = document.querySelectorAll('.border.rounded.p-3');
+            
+            statisticsCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 50);
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

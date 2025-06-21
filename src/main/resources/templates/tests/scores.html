@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成績入力 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link active" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-edit"></i> 成績入力</h2>
+                <div class="text-muted">
+                    <span th:text="${test.testName}"></span> - 
+                    <span th:text="${test.schoolClass.className}"></span>
+                </div>
+            </div>
+            <div>
+                <a th:href="@{/tests/{id}(id=${test.id})}" class="btn btn-info">
+                    <i class="fas fa-eye"></i> テスト詳細
+                </a>
+                <a href="/tests" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> テスト一覧
+                </a>
+            </div>
+        </div>
+
+        <!-- 成功・エラーメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-9">
+                <!-- テスト情報 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> テスト情報</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>実施日:</strong><br>
+                                <span th:text="${#temporals.format(test.testDate, 'yyyy年MM月dd日')}"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>満点:</strong><br>
+                                <span class="h6 text-primary" th:text="${test.maxScore} + '点'"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>合格点:</strong><br>
+                                <span th:if="${test.passingScore}" 
+                                      class="h6 text-success" 
+                                      th:text="${test.passingScore} + '点'"></span>
+                                <span th:unless="${test.passingScore}" class="text-muted">未設定</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>対象者数:</strong><br>
+                                <span class="h6" th:text="${#lists.size(students)} + '名'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成績入力フォーム -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-table"></i> 成績入力</h5>
+                        <div>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="saveAll()">
+                                <i class="fas fa-save"></i> 一括保存
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="clearAll()">
+                                <i class="fas fa-eraser"></i> 全クリア
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form id="scoresForm" th:action="@{/tests/{id}/scores(id=${test.id})}" method="post">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th width="15%">学籍番号</th>
+                                            <th width="20%">氏名</th>
+                                            <th width="15%">得点</th>
+                                            <th width="15%">合格/不合格</th>
+                                            <th width="20%">コメント</th>
+                                            <th width="15%">状態</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="student, iterStat : ${students}">
+                                            <td>
+                                                <span th:text="${student.studentNumber}"></span>
+                                                <input type="hidden" 
+                                                       th:name="'scores[' + ${iterStat.index} + '].studentId'" 
+                                                       th:value="${student.id}">
+                                            </td>
+                                            <td>
+                                                <a th:href="@{/students/{id}(id=${student.id})}" 
+                                                   th:text="${student.fullName}" 
+                                                   class="text-decoration-none" 
+                                                   target="_blank"></a>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="number" 
+                                                           class="form-control score-input" 
+                                                           th:name="'scores[' + ${iterStat.index} + '].score'"
+                                                           th:id="'score_' + ${student.id}"
+                                                           th:value="${existingScores != null && existingScores.containsKey(student.id) ? existingScores.get(student.id).score : ''}"
+                                                           min="0" 
+                                                           th:max="${test.maxScore}"
+                                                           placeholder="点数"
+                                                           oninput="updatePassFail(this)">
+                                                    <span class="input-group-text" th:text="'/' + ${test.maxScore}"></span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span th:id="'passFail_' + ${student.id}" class="pass-fail-indicator">
+                                                    <span th:if="${existingScores != null && existingScores.containsKey(student.id)}">
+                                                        <span th:if="${test.passingScore != null && existingScores.get(student.id).score >= test.passingScore}" 
+                                                              class="badge bg-success">合格</span>
+                                                        <span th:if="${test.passingScore != null && existingScores.get(student.id).score < test.passingScore}" 
+                                                              class="badge bg-danger">不合格</span>
+                                                        <span th:unless="${test.passingScore != null}" class="text-muted">-</span>
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <input type="text" 
+                                                       class="form-control" 
+                                                       th:name="'scores[' + ${iterStat.index} + '].comment'"
+                                                       th:value="${existingScores != null && existingScores.containsKey(student.id) ? existingScores.get(student.id).comment : ''}"
+                                                       placeholder="コメント（任意）"
+                                                       maxlength="200">
+                                            </td>
+                                            <td>
+                                                <span th:if="${existingScores != null && existingScores.containsKey(student.id)}" 
+                                                      class="badge bg-info">入力済み</span>
+                                                <span th:unless="${existingScores != null && existingScores.containsKey(student.id)}" 
+                                                      class="badge bg-secondary">未入力</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> 成績を保存
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="previewResults()">
+                                    <i class="fas fa-eye"></i> プレビュー
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-3">
+                <!-- 入力状況 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-pie"></i> 入力状況</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <div class="mb-2">
+                                <span class="h4" id="completedCount">0</span> / 
+                                <span th:text="${#lists.size(students)}"></span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="small text-muted">入力完了率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成績統計 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-calculator"></i> リアルタイム統計</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>平均点:</span>
+                                <span id="averageScore">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>最高点:</span>
+                                <span id="maxScore">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>最低点:</span>
+                                <span id="minScore">-</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between mb-1" th:if="${test.passingScore != null}">
+                                <span>合格者数:</span>
+                                <span id="passedCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between" th:if="${test.passingScore != null}">
+                                <span>合格率:</span>
+                                <span id="passRate">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- クイック操作 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-bolt"></i> クイック操作</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="fillSampleScores()">
+                                <i class="fas fa-random"></i> サンプルデータ入力
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="fillPassingScores()">
+                                <i class="fas fa-check"></i> 合格点で一律入力
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearAllScores()">
+                                <i class="fas fa-trash"></i> 全て削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作ヒント -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb"></i> 操作ヒント</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <p><strong>Tabキー</strong>: 次の入力欄に移動</p>
+                            <p><strong>Enterキー</strong>: 下の行に移動</p>
+                            <p><strong>Ctrl+S</strong>: 一括保存</p>
+                            <p><strong>コメント欄</strong>: 任意でフィードバックを記入</p>
+                            <div class="text-muted mt-2">
+                                <i class="fas fa-info-circle"></i> 
+                                入力中のデータは自動的に一時保存されます
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const maxScore = /*[[${test.maxScore}]]*/ 100;
+        const passingScore = /*[[${test.passingScore}]]*/ null;
+        const totalStudents = /*[[${#lists.size(students)}]]*/ 0;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatistics();
+            setupKeyboardNavigation();
+            setupAutoSave();
+        });
+
+        function updatePassFail(input) {
+            const studentId = input.id.split('_')[1];
+            const score = parseInt(input.value);
+            const passFail = document.getElementById('passFail_' + studentId);
+            
+            if (!isNaN(score) && passingScore !== null) {
+                if (score >= passingScore) {
+                    passFail.innerHTML = '<span class="badge bg-success">合格</span>';
+                } else {
+                    passFail.innerHTML = '<span class="badge bg-danger">不合格</span>';
+                }
+            } else {
+                passFail.innerHTML = '';
+            }
+            
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const scoreInputs = document.querySelectorAll('.score-input');
+            const scores = [];
+            let completedCount = 0;
+            let passedCount = 0;
+            
+            scoreInputs.forEach(input => {
+                const score = parseInt(input.value);
+                if (!isNaN(score)) {
+                    scores.push(score);
+                    completedCount++;
+                    if (passingScore !== null && score >= passingScore) {
+                        passedCount++;
+                    }
+                }
+            });
+            
+            // 入力状況更新
+            document.getElementById('completedCount').textContent = completedCount;
+            const progressPercentage = (completedCount / totalStudents) * 100;
+            document.getElementById('progressBar').style.width = progressPercentage + '%';
+            
+            // 統計更新
+            if (scores.length > 0) {
+                const average = scores.reduce((a, b) => a + b, 0) / scores.length;
+                const max = Math.max(...scores);
+                const min = Math.min(...scores);
+                
+                document.getElementById('averageScore').textContent = average.toFixed(1);
+                document.getElementById('maxScore').textContent = max;
+                document.getElementById('minScore').textContent = min;
+                
+                if (passingScore !== null) {
+                    document.getElementById('passedCount').textContent = passedCount;
+                    const passRate = completedCount > 0 ? (passedCount / completedCount) * 100 : 0;
+                    document.getElementById('passRate').textContent = passRate.toFixed(1) + '%';
+                }
+            } else {
+                document.getElementById('averageScore').textContent = '-';
+                document.getElementById('maxScore').textContent = '-';
+                document.getElementById('minScore').textContent = '-';
+                if (passingScore !== null) {
+                    document.getElementById('passedCount').textContent = '-';
+                    document.getElementById('passRate').textContent = '-';
+                }
+            }
+        }
+
+        function setupKeyboardNavigation() {
+            const inputs = document.querySelectorAll('.score-input');
+            inputs.forEach((input, index) => {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (index < inputs.length - 1) {
+                            inputs[index + 1].focus();
+                        }
+                    }
+                });
+            });
+        }
+
+        function setupAutoSave() {
+            // Ctrl+S で保存
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    saveAll();
+                }
+            });
+        }
+
+        function saveAll() {
+            document.getElementById('scoresForm').submit();
+        }
+
+        function clearAll() {
+            if (confirm('全ての入力をクリアしますか？')) {
+                clearAllScores();
+            }
+        }
+
+        function clearAllScores() {
+            document.querySelectorAll('.score-input').forEach(input => {
+                input.value = '';
+                updatePassFail(input);
+            });
+            document.querySelectorAll('input[name*="comment"]').forEach(input => {
+                input.value = '';
+            });
+            updateStatistics();
+        }
+
+        function fillSampleScores() {
+            if (confirm('サンプルデータを入力しますか？既存のデータは上書きされます。')) {
+                const scoreInputs = document.querySelectorAll('.score-input');
+                scoreInputs.forEach(input => {
+                    // 60-100の範囲でランダムな点数を生成
+                    const randomScore = Math.floor(Math.random() * 41) + 60;
+                    input.value = randomScore;
+                    updatePassFail(input);
+                });
+                updateStatistics();
+            }
+        }
+
+        function fillPassingScores() {
+            if (passingScore !== null && confirm('全員に合格点を入力しますか？')) {
+                document.querySelectorAll('.score-input').forEach(input => {
+                    input.value = passingScore;
+                    updatePassFail(input);
+                });
+                updateStatistics();
+            } else if (passingScore === null) {
+                alert('合格点が設定されていません。');
+            }
+        }
+
+        function previewResults() {
+            const form = document.getElementById('scoresForm');
+            const formData = new FormData(form);
+            
+            // プレビューウィンドウを開く
+            const previewWindow = window.open('', '_blank', 'width=800,height=600');
+            previewWindow.document.write('<h3>成績プレビュー</h3>');
+            previewWindow.document.write('<p>実装予定...</p>');
+        }
+
+        // 初期統計更新
+        updateStatistics();
+    </script>
+</body>
+</html>

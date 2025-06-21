@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テスト編集 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link active" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-edit"></i> テスト編集</h2>
+            <div>
+                <a th:href="@{/tests/{id}(id=${test.id})}" class="btn btn-info">
+                    <i class="fas fa-eye"></i> 詳細表示
+                </a>
+                <a href="/tests" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> 一覧に戻る
+                </a>
+            </div>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-edit"></i> テスト情報編集</h5>
+                        <div>
+                            <span th:if="${test.completed}" class="badge bg-success">実施済み</span>
+                            <span th:unless="${test.completed}" class="badge bg-warning">未実施</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/tests/{id}(id=${test.id})}" method="post" th:object="${test}">
+                            <div class="row">
+                                <!-- テスト名 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="testName" class="form-label">
+                                        <i class="fas fa-clipboard-list"></i> テスト名 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="testName" 
+                                           th:field="*{testName}" 
+                                           required maxlength="100">
+                                </div>
+
+                                <!-- クラス -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="schoolClass" class="form-label">
+                                        <i class="fas fa-chalkboard"></i> 対象クラス <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="schoolClass" th:field="*{schoolClass}" required>
+                                        <option value="">クラスを選択してください</option>
+                                        <option th:each="class : ${classes}" 
+                                                th:value="${class.id}" 
+                                                th:text="${class.className}"
+                                                th:selected="${test.schoolClass != null and test.schoolClass.id == class.id}"></option>
+                                    </select>
+                                </div>
+
+                                <!-- 説明 -->
+                                <div class="col-12 mb-3">
+                                    <label for="description" class="form-label">
+                                        <i class="fas fa-align-left"></i> 説明・内容
+                                    </label>
+                                    <textarea class="form-control" id="description" 
+                                              th:field="*{description}" 
+                                              rows="3" maxlength="500"></textarea>
+                                </div>
+
+                                <!-- 実施日 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="testDate" class="form-label">
+                                        <i class="fas fa-calendar"></i> 実施日 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" class="form-control" id="testDate" 
+                                           th:field="*{testDate}" 
+                                           required>
+                                </div>
+
+                                <!-- 実施時間 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="testTime" class="form-label">
+                                        <i class="fas fa-clock"></i> 実施時間
+                                    </label>
+                                    <input type="time" class="form-control" id="testTime" 
+                                           th:field="*{testTime}">
+                                </div>
+
+                                <!-- 制限時間 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="duration" class="form-label">
+                                        <i class="fas fa-hourglass-half"></i> 制限時間（分）
+                                    </label>
+                                    <input type="number" class="form-control" id="duration" 
+                                           th:field="*{duration}" 
+                                           min="1" max="480">
+                                    <div class="form-text">分単位で入力してください（最大8時間）</div>
+                                </div>
+
+                                <!-- 満点 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxScore" class="form-label">
+                                        <i class="fas fa-trophy"></i> 満点 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="maxScore" 
+                                           th:field="*{maxScore}" 
+                                           min="1" max="1000" 
+                                           required>
+                                    <div class="form-text">
+                                        <span th:if="${test.completed}" class="text-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> 実施済みテストの満点変更は慎重に行ってください
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- 合格点 -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="passingScore" class="form-label">
+                                        <i class="fas fa-check-circle"></i> 合格点
+                                    </label>
+                                    <input type="number" class="form-control" id="passingScore" 
+                                           th:field="*{passingScore}" 
+                                           min="0">
+                                    <div class="form-text">合格とする最低点数</div>
+                                </div>
+
+                                <!-- テストタイプ -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="testType" class="form-label">
+                                        <i class="fas fa-tags"></i> テストタイプ
+                                    </label>
+                                    <select class="form-select" id="testType" th:field="*{testType}">
+                                        <option value="MIDTERM">中間テスト</option>
+                                        <option value="FINAL">期末テスト</option>
+                                        <option value="QUIZ">小テスト</option>
+                                        <option value="ASSIGNMENT">課題</option>
+                                        <option value="OTHER">その他</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 送信ボタン -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save"></i> 変更を保存
+                                </button>
+                                <a th:href="@{/tests/{id}(id=${test.id})}" class="btn btn-secondary btn-lg ms-2">
+                                    <i class="fas fa-times"></i> キャンセル
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-4">
+                <!-- 現在の情報 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info"></i> 現在の情報</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <p><strong>テスト名:</strong> <span th:text="${test.testName}"></span></p>
+                            <p><strong>対象クラス:</strong> <span th:text="${test.schoolClass.className}"></span></p>
+                            <p><strong>実施日:</strong> 
+                                <span th:text="${#temporals.format(test.testDate, 'yyyy年MM月dd日')}"></span>
+                                <span th:if="${test.testTime}" th:text="' ' + ${test.testTime}"></span>
+                            </p>
+                            <p><strong>制限時間:</strong> 
+                                <span th:if="${test.duration}" th:text="${test.duration} + '分'"></span>
+                                <span th:unless="${test.duration}" class="text-muted">制限なし</span>
+                            </p>
+                            <p><strong>満点:</strong> <span th:text="${test.maxScore} + '点'"></span></p>
+                            <p><strong>合格点:</strong> 
+                                <span th:if="${test.passingScore}" th:text="${test.passingScore} + '点'"></span>
+                                <span th:unless="${test.passingScore}" class="text-muted">未設定</span>
+                            </p>
+                            <p><strong>ステータス:</strong> 
+                                <span th:if="${test.completed}" class="text-success">実施済み</span>
+                                <span th:unless="${test.completed}" class="text-warning">未実施</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 関連操作 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-tools"></i> 関連操作</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/tests/{id}/scores(id=${test.id})}" 
+                               class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-chart-line"></i> 成績入力・確認
+                            </a>
+                            <a th:href="@{/tests/{id}/results(id=${test.id})}" 
+                               class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-poll"></i> 結果分析
+                            </a>
+                            <hr>
+                            <div th:if="${test.completed}">
+                                <button type="button" class="btn btn-outline-warning btn-sm w-100" 
+                                        onclick="confirmReopenTest()">
+                                    <i class="fas fa-undo"></i> 再実施に戻す
+                                </button>
+                            </div>
+                            <div th:unless="${test.completed}">
+                                <button type="button" class="btn btn-outline-success btn-sm w-100" 
+                                        onclick="confirmCompleteTest()">
+                                    <i class="fas fa-check"></i> 実施完了にする
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-1" 
+                                    onclick="confirmDeleteTest()">
+                                <i class="fas fa-trash"></i> テスト削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 受講生情報 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-users"></i> 対象受講生</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <p><strong>対象人数:</strong> <span th:text="${test.schoolClass.currentStudentCount}"></span>名</p>
+                            <p><strong>成績入力済み:</strong> <span th:text="${completedCount ?: 0}"></span>名</p>
+                            <p><strong>未入力:</strong> 
+                                <span th:text="${test.schoolClass.currentStudentCount - (completedCount ?: 0)}"></span>名
+                            </p>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" 
+                                     th:style="'width: ' + ${(completedCount ?: 0) * 100 / test.schoolClass.currentStudentCount} + '%'"></div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span th:text="${#numbers.formatPercent((completedCount ?: 0) / test.schoolClass.currentStudentCount, 0, 0)}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 日時プレビュー -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-calendar"></i> 日時プレビュー</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <p><strong>実施日:</strong> <span id="datePreview">-</span></p>
+                            <p><strong>実施時間:</strong> <span id="timePreview">-</span></p>
+                            <p><strong>制限時間:</strong> <span id="durationPreview">-</span></p>
+                            <div id="scheduleWarning" class="alert alert-warning p-2 d-none">
+                                <small>過去の日付が設定されています</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 実施完了確認フォーム -->
+    <form id="completeForm" th:action="@{/tests/{id}/complete(id=${test.id})}" 
+          method="post" style="display: none;">
+    </form>
+
+    <!-- 再実施確認フォーム -->
+    <form id="reopenForm" th:action="@{/tests/{id}/reopen(id=${test.id})}" 
+          method="post" style="display: none;">
+    </form>
+
+    <!-- 削除確認フォーム -->
+    <form id="deleteForm" th:action="@{/tests/{id}/delete(id=${test.id})}" 
+          method="post" style="display: none;">
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmCompleteTest() {
+            if (confirm('このテストを実施完了にしますか？完了後は成績入力が可能になります。')) {
+                document.getElementById('completeForm').submit();
+            }
+        }
+
+        function confirmReopenTest() {
+            if (confirm('このテストを再実施状態に戻しますか？')) {
+                document.getElementById('reopenForm').submit();
+            }
+        }
+
+        function confirmDeleteTest() {
+            if (confirm('このテストを削除しますか？この操作は取り消せません。関連する成績データも削除されます。')) {
+                document.getElementById('deleteForm').submit();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const testDateInput = document.getElementById('testDate');
+            const testTimeInput = document.getElementById('testTime');
+            const durationInput = document.getElementById('duration');
+            const maxScoreInput = document.getElementById('maxScore');
+            const passingScoreInput = document.getElementById('passingScore');
+            const datePreview = document.getElementById('datePreview');
+            const timePreview = document.getElementById('timePreview');
+            const durationPreview = document.getElementById('durationPreview');
+            const scheduleWarning = document.getElementById('scheduleWarning');
+
+            function updatePreview() {
+                const testDate = testDateInput.value;
+                const testTime = testTimeInput.value;
+                const duration = durationInput.value;
+
+                datePreview.textContent = testDate ? formatDate(testDate) : '-';
+                timePreview.textContent = testTime || '-';
+                durationPreview.textContent = duration ? duration + '分' : '-';
+
+                // 過去の日付チェック
+                if (testDate) {
+                    const today = new Date();
+                    const selectedDate = new Date(testDate);
+                    
+                    if (selectedDate < today.setHours(0,0,0,0)) {
+                        scheduleWarning.classList.remove('d-none');
+                    } else {
+                        scheduleWarning.classList.add('d-none');
+                    }
+                } else {
+                    scheduleWarning.classList.add('d-none');
+                }
+            }
+
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+            }
+
+            // 合格点の検証
+            passingScoreInput.addEventListener('input', function() {
+                const maxScore = parseInt(maxScoreInput.value);
+                const passingScore = parseInt(passingScoreInput.value);
+                
+                if (maxScore && passingScore > maxScore) {
+                    passingScoreInput.value = maxScore;
+                    alert('合格点は満点以下に設定してください。');
+                }
+            });
+
+            testDateInput.addEventListener('change', updatePreview);
+            testTimeInput.addEventListener('change', updatePreview);
+            durationInput.addEventListener('input', updatePreview);
+            
+            // 初期表示
+            updatePreview();
+        });
+
+        // フォームバリデーション
+        document.querySelector('form[th\\:action]').addEventListener('submit', function(e) {
+            const maxScore = parseInt(document.getElementById('maxScore').value);
+            const passingScore = parseInt(document.getElementById('passingScore').value);
+            
+            if (passingScore && passingScore > maxScore) {
+                alert('合格点は満点以下に設定してください。');
+                e.preventDefault();
+                return;
+            }
+            
+            const testName = document.getElementById('testName').value.trim();
+            if (testName.length < 3) {
+                alert('テスト名は3文字以上で入力してください。');
+                e.preventDefault();
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
