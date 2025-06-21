@@ -163,7 +163,7 @@
                 </div>
 
                 <!-- クラス割り当て -->
-                <div class="card">
+                <div class="card" th:if="${classes}">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-plus-circle"></i> クラス割り当て</h5>
                     </div>
@@ -173,7 +173,7 @@
                                 <label for="classId" class="form-label">クラス選択</label>
                                 <select class="form-select" id="classId" name="classId" required>
                                     <option value="">クラスを選択してください</option>
-                                    <option th:each="class : ${availableClasses}" 
+                                    <option th:each="class : ${classes}" 
                                             th:value="${class.id}" 
                                             th:text="${class.className}"></option>
                                 </select>

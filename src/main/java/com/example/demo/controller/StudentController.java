@@ -55,6 +55,7 @@ public class StudentController {
             .orElseThrow(() -> new RuntimeException("受講生が見つかりません"));
         
         model.addAttribute("student", student);
+        model.addAttribute("classes", schoolClassService.getActiveClasses());
         return "students/view";
     }
     
