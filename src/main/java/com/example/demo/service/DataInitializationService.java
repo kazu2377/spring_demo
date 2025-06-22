@@ -42,8 +42,8 @@ public class DataInitializationService {
     private final Random random = new Random();
 
     public void initializeSampleData() {
-        if (userRepository.count() > 4) {
-            // サンプルデータが既に存在する場合はスキップ
+        // 管理者が既に存在し、他のサンプルデータも十分にある場合はスキップ
+        if (userRepository.existsByUsername("admin") && studentRepository.count() > 10) {
             return;
         }
         
@@ -68,22 +68,27 @@ public class DataInitializationService {
 
     private void createUsers() {
         // 管理者
-        User admin = new User();
-        admin.setUsername("admin");
-        admin.setPassword(passwordEncoder.encode("admin123"));
-        admin.setRole(Role.ADMIN);
-        admin.setActive(true);
-        userRepository.save(admin);
+        if (!userRepository.existsByUsername("admin")) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setRole(Role.ADMIN);
+            admin.setActive(true);
+            userRepository.save(admin);
+        }
 
         // 講師
         String[] teacherNames = {"田中先生", "佐藤先生", "鈴木先生", "高橋先生"};
         for (int i = 0; i < teacherNames.length; i++) {
-            User teacher = new User();
-            teacher.setUsername("teacher" + (i + 1));
-            teacher.setPassword(passwordEncoder.encode("teacher123"));
-            teacher.setRole(Role.TEACHER);
-            teacher.setActive(true);
-            userRepository.save(teacher);
+            String username = "teacher" + (i + 1);
+            if (!userRepository.existsByUsername(username)) {
+                User teacher = new User();
+                teacher.setUsername(username);
+                teacher.setPassword(passwordEncoder.encode("teacher123"));
+                teacher.setRole(Role.TEACHER);
+                teacher.setActive(true);
+                userRepository.save(teacher);
+            }
         }
 
         // 受講生用ユーザー（後で受講生エンティティと関連付け）
@@ -95,12 +100,14 @@ public class DataInitializationService {
         };
         
         for (String username : studentUsernames) {
-            User studentUser = new User();
-            studentUser.setUsername(username);
-            studentUser.setPassword(passwordEncoder.encode("student123"));
-            studentUser.setRole(Role.STUDENT);
-            studentUser.setActive(true);
-            userRepository.save(studentUser);
+            if (!userRepository.existsByUsername(username)) {
+                User studentUser = new User();
+                studentUser.setUsername(username);
+                studentUser.setPassword(passwordEncoder.encode("student123"));
+                studentUser.setRole(Role.STUDENT);
+                studentUser.setActive(true);
+                userRepository.save(studentUser);
+            }
         }
     }
 
