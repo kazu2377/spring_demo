@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出席状況確認 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/student/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/student/scores">成績確認</a>
+                <a class="nav-link active" href="/student/attendance">出席状況</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="fas fa-calendar-check"></i> 出席状況確認</h2>
+                <p class="text-muted mb-0">
+                    <span th:text="${currentUser.username}"></span>さんの出席記録
+                </p>
+            </div>
+            <a href="/student/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
+            </a>
+        </div>
+
+        <div class="row">
+            <!-- 出席統計サマリー -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie"></i> 出席統計</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-success-subtle">
+                                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                    <h4 th:text="${attendanceStats.presentCount}">0</h4>
+                                    <small>出席日数</small>
+                                    <div class="small text-muted" th:text="${attendanceStats.presentRate}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-warning-subtle">
+                                    <i class="fas fa-clock text-warning fa-2x mb-2"></i>
+                                    <h4 th:text="${attendanceStats.lateCount}">0</h4>
+                                    <small>遅刻回数</small>
+                                    <div class="small text-muted" th:text="${attendanceStats.lateRate}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-danger-subtle">
+                                    <i class="fas fa-times-circle text-danger fa-2x mb-2"></i>
+                                    <h4 th:text="${attendanceStats.absentCount}">0</h4>
+                                    <small>欠席日数</small>
+                                    <div class="small text-muted" th:text="${attendanceStats.absentRate}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 bg-info-subtle">
+                                    <i class="fas fa-percentage text-info fa-2x mb-2"></i>
+                                    <h4 th:text="${attendanceStats.attendanceRate}">0%</h4>
+                                    <small>出席率</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 出席率プログレスバー -->
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>全体の出席状況</span>
+                                <span th:text="${attendanceStats.attendanceRate}"></span>
+                            </div>
+                            <div class="progress mb-3" style="height: 12px;">
+                                <div class="progress-bar bg-success" 
+                                     th:style="'width: ' + ${attendanceStats.presentPercentage} + '%'"
+                                     th:title="'出席: ' + ${attendanceStats.presentRate}"></div>
+                                <div class="progress-bar bg-warning" 
+                                     th:style="'width: ' + ${attendanceStats.latePercentage} + '%'"
+                                     th:title="'遅刻: ' + ${attendanceStats.lateRate}"></div>
+                                <div class="progress-bar bg-danger" 
+                                     th:style="'width: ' + ${attendanceStats.absentPercentage} + '%'"
+                                     th:title="'欠席: ' + ${attendanceStats.absentRate}"></div>
+                            </div>
+                            <div class="row text-center small">
+                                <div class="col-4">
+                                    <span class="badge bg-success">出席 <span th:text="${attendanceStats.presentRate}"></span></span>
+                                </div>
+                                <div class="col-4">
+                                    <span class="badge bg-warning">遅刻 <span th:text="${attendanceStats.lateRate}"></span></span>
+                                </div>
+                                <div class="col-4">
+                                    <span class="badge bg-danger">欠席 <span th:text="${attendanceStats.absentRate}"></span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- グラフ表示 -->
+                        <div class="mt-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <canvas id="attendanceChart" width="300" height="200"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <canvas id="monthlyChart" width="300" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 月別出席カレンダー -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-calendar"></i> 月別出席カレンダー</h5>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="prevMonth()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="currentMonth" class="mx-2"></span>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="nextMonth()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center attendance-calendar">
+                                <thead>
+                                    <tr>
+                                        <th class="text-danger">日</th>
+                                        <th>月</th>
+                                        <th>火</th>
+                                        <th>水</th>
+                                        <th>木</th>
+                                        <th>金</th>
+                                        <th class="text-primary">土</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendarBody">
+                                    <!-- JavaScriptで動的生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <span class="badge bg-success me-2"><i class="fas fa-circle"></i> 出席</span>
+                            <span class="badge bg-warning me-2"><i class="fas fa-circle"></i> 遅刻</span>
+                            <span class="badge bg-danger me-2"><i class="fas fa-circle"></i> 欠席</span>
+                            <span class="badge bg-secondary me-2"><i class="fas fa-circle"></i> 休校日</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出席記録詳細 -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-list"></i> 出席記録詳細</h5>
+                        <div>
+                            <select class="form-select form-select-sm" onchange="filterRecords(this.value)">
+                                <option value="">全て表示</option>
+                                <option value="PRESENT">出席のみ</option>
+                                <option value="LATE">遅刻のみ</option>
+                                <option value="ABSENT">欠席のみ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${attendanceRecords != null && !#lists.isEmpty(attendanceRecords)}">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>日付</th>
+                                            <th>出席状況</th>
+                                            <th>到着時刻</th>
+                                            <th>備考</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attendanceTable">
+                                        <tr th:each="record : ${attendanceRecords}">
+                                            <td th:text="${#temporals.format(record.attendanceDate, 'yyyy年MM月dd日 (E)')}"></td>
+                                            <td>
+                                                <span th:switch="${record.status}">
+                                                    <span th:case="'PRESENT'" class="badge bg-success">
+                                                        <i class="fas fa-check"></i> 出席
+                                                    </span>
+                                                    <span th:case="'LATE'" class="badge bg-warning">
+                                                        <i class="fas fa-clock"></i> 遅刻
+                                                    </span>
+                                                    <span th:case="'ABSENT'" class="badge bg-danger">
+                                                        <i class="fas fa-times"></i> 欠席
+                                                    </span>
+                                                    <span th:case="'EARLY_LEAVE'" class="badge bg-warning">
+                                                        <i class="fas fa-door-open"></i> 早退
+                                                    </span>
+                                                    <span th:case="'EXCUSED'" class="badge bg-secondary">
+                                                        <i class="fas fa-file-medical"></i> 公欠
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${record.arrivalTime}" th:text="${record.arrivalTime}"></span>
+                                                <span th:unless="${record.arrivalTime}" class="text-muted">-</span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${record.notes}" th:text="${record.notes}"></span>
+                                                <span th:unless="${record.notes}" class="text-muted">-</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div th:if="${attendanceRecords == null || #lists.isEmpty(attendanceRecords)}" 
+                             class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                            <p>出席記録がまだありません。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-4">
+                <!-- 個人情報 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-user"></i> 基本情報</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-user-circle fa-4x text-primary"></i>
+                            <h6 class="mt-2" th:text="${student.fullName}"></h6>
+                            <small class="text-muted" th:text="${student.studentNumber}"></small>
+                        </div>
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>クラス:</span>
+                                <span th:text="${student.schoolClass?.className ?: '未割当'}"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>入学日:</span>
+                                <span th:text="${#temporals.format(student.enrollmentDate, 'yyyy/MM/dd')}"></span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>在籍日数:</span>
+                                <span th:text="${attendanceStats.totalDays} + '日'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出席状況アラート -->
+                <div class="card mb-4" th:if="${attendanceStats.attendancePercentage < 80}">
+                    <div class="card-header bg-warning">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> 注意</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <small>
+                                <strong>出席率が80%を下回っています。</strong><br>
+                                継続的な学習のため、規則正しい出席を心がけてください。
+                            </small>
+                        </div>
+                        <div class="text-muted small">
+                            ご不明な点がございましたら、担任講師または学生相談室までお気軽にご相談ください。
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出席目標 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-target"></i> 出席目標</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>今月の目標:</span>
+                                    <span class="fw-bold">95%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" 
+                                         th:style="'width: ' + ${monthlyStats.attendancePercentage} + '%'"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span class="text-muted">現在:</span>
+                                    <span th:text="${monthlyStats.attendanceRate}" 
+                                          th:class="${monthlyStats.attendancePercentage >= 95} ? 'text-success' : 'text-warning'"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>連続出席記録:</span>
+                                    <span class="fw-bold" th:text="${attendanceStats.consecutiveDays} + '日'"></span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>次回授業:</span>
+                                    <span th:if="${nextClassDate}" th:text="${#temporals.format(nextClassDate, 'MM/dd (E)')}"></span>
+                                    <span th:unless="${nextClassDate}" class="text-muted">未定</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- お知らせ -->
+                <div class="card mb-4" th:if="${announcements != null && !#lists.isEmpty(announcements)}">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-bullhorn"></i> お知らせ</h6>
+                    </div>
+                    <div class="card-body">
+                        <div th:each="announcement : ${announcements}" class="mb-3 border-bottom pb-2">
+                            <div class="small">
+                                <div class="fw-bold" th:text="${announcement.title}"></div>
+                                <div class="text-muted" th:text="${announcement.content}"></div>
+                                <div class="text-muted small" th:text="${#temporals.format(announcement.date, 'yyyy/MM/dd')}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 励ましメッセージ -->
+                <div class="card" th:if="${attendanceStats.attendancePercentage >= 90}">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-thumbs-up"></i> 素晴らしい！</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-success text-center">
+                            <i class="fas fa-trophy fa-3x mb-2"></i>
+                            <p class="mb-0">優秀な出席率です！<br>この調子で頑張ってください。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        const attendanceData = /*[[${chartData.attendanceData}]]*/ [70, 15, 15];
+        const monthlyData = /*[[${chartData.monthlyData}]]*/ [];
+        const attendanceCalendarData = /*[[${attendanceCalendarData}]]*/ {};
+        let currentDate = new Date();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            generateCalendar();
+        });
+
+        function initializeCharts() {
+            // 出席状況円グラフ
+            const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(attendanceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['出席', '遅刻', '欠席'],
+                    datasets: [{
+                        data: attendanceData,
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '出席状況分布'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // 月別出席率グラフ
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                    datasets: [{
+                        label: '出席率',
+                        data: monthlyData.length > 0 ? monthlyData : [85, 87, 82, 89, 91, 88],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '月別出席率推移'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            document.getElementById('currentMonth').textContent = year + '年' + (month + 1) + '月';
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay();
+            
+            const calendarBody = document.getElementById('calendarBody');
+            calendarBody.innerHTML = '';
+            
+            let date = 1;
+            for (let i = 0; i < 6; i++) {
+                const row = document.createElement('tr');
+                
+                for (let j = 0; j < 7; j++) {
+                    const cell = document.createElement('td');
+                    cell.style.width = '14.28%';
+                    cell.style.height = '40px';
+                    
+                    if (i === 0 && j < startDay) {
+                        cell.textContent = '';
+                    } else if (date > lastDay.getDate()) {
+                        cell.textContent = '';
+                    } else {
+                        cell.textContent = date;
+                        
+                        const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(date).padStart(2, '0');
+                        if (attendanceCalendarData[dateKey]) {
+                            const status = attendanceCalendarData[dateKey];
+                            switch(status) {
+                                case 'PRESENT':
+                                    cell.className = 'bg-success text-white';
+                                    cell.title = '出席';
+                                    break;
+                                case 'LATE':
+                                    cell.className = 'bg-warning text-white';
+                                    cell.title = '遅刻';
+                                    break;
+                                case 'ABSENT':
+                                    cell.className = 'bg-danger text-white';
+                                    cell.title = '欠席';
+                                    break;
+                                case 'EXCUSED':
+                                    cell.className = 'bg-secondary text-white';
+                                    cell.title = '公欠';
+                                    break;
+                            }
+                        }
+                        
+                        const today = new Date();
+                        if (year === today.getFullYear() && 
+                            month === today.getMonth() && 
+                            date === today.getDate()) {
+                            cell.style.border = '3px solid #007bff';
+                            cell.style.fontWeight = 'bold';
+                        }
+                        
+                        date++;
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                calendarBody.appendChild(row);
+                
+                if (date > lastDay.getDate()) {
+                    break;
+                }
+            }
+        }
+
+        function prevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            generateCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            generateCalendar();
+        }
+
+        function filterRecords(status) {
+            const rows = document.querySelectorAll('#attendanceTable tr');
+            rows.forEach(row => {
+                if (status === '') {
+                    row.style.display = '';
+                } else {
+                    const statusCell = row.cells[1];
+                    const statusBadge = statusCell.querySelector('.badge');
+                    if (statusBadge) {
+                        const statusText = statusBadge.textContent.trim();
+                        const shouldShow = 
+                            (status === 'PRESENT' && statusText.includes('出席')) ||
+                            (status === 'LATE' && statusText.includes('遅刻')) ||
+                            (status === 'ABSENT' && statusText.includes('欠席'));
+                        row.style.display = shouldShow ? '' : 'none';
+                    }
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .attendance-calendar td {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .attendance-calendar td:hover {
+            transform: scale(1.1);
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+    </style>
+</body>
+</html>

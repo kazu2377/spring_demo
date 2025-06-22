@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データエクスポート - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-download"></i> データエクスポート</h2>
+            <a href="/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- 基本データエクスポート -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-database"></i> 基本データエクスポート</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                        <h6>受講生データ</h6>
+                                        <p class="text-muted small">受講生の基本情報一覧</p>
+                                        <a href="/export/csv/students" class="btn btn-primary" onclick="trackDownload('students')">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-chalkboard fa-3x text-success mb-3"></i>
+                                        <h6>クラスデータ</h6>
+                                        <p class="text-muted small">全クラスの詳細情報</p>
+                                        <a href="/export/csv/classes" class="btn btn-success" onclick="trackDownload('classes')">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 出欠席データエクスポート -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check"></i> 出欠席データエクスポート</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-list fa-3x text-info mb-3"></i>
+                                        <h6>詳細出欠席記録</h6>
+                                        <p class="text-muted small">日別の詳細な出欠席記録</p>
+                                        <div class="mb-2">
+                                            <select class="form-select form-select-sm" id="attendanceClassFilter">
+                                                <option value="">全クラス</option>
+                                                <option th:each="class : ${classes}" 
+                                                        th:value="${class.id}" 
+                                                        th:text="${class.className}"></option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-info" onclick="exportAttendance()">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-chart-bar fa-3x text-warning mb-3"></i>
+                                        <h6>出席統計サマリー</h6>
+                                        <p class="text-muted small">受講生別の出席率統計</p>
+                                        <a href="/export/csv/attendance-summary" class="btn btn-warning" onclick="trackDownload('attendance-summary')">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- テスト・成績データエクスポート -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> テスト・成績データエクスポート</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-graduation-cap fa-3x text-danger mb-3"></i>
+                                        <h6>詳細成績記録</h6>
+                                        <p class="text-muted small">テスト別の詳細成績</p>
+                                        <div class="mb-2">
+                                            <select class="form-select form-select-sm" id="testFilter">
+                                                <option value="">全テスト</option>
+                                                <option th:each="test : ${tests}" 
+                                                        th:value="${test.id}" 
+                                                        th:text="${test.testName + ' (' + test.schoolClass.className + ')'}"></option>
+                                            </select>
+                                        </div>
+                                        <button class="btn btn-danger" onclick="exportTestScores()">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-trophy fa-3x text-secondary mb-3"></i>
+                                        <h6>成績統計サマリー</h6>
+                                        <p class="text-muted small">受講生別の成績統計</p>
+                                        <a href="/export/csv/test-results-summary" class="btn btn-secondary" onclick="trackDownload('test-results-summary')">
+                                            <i class="fas fa-download"></i> CSV ダウンロード
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 一括エクスポート -->
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-archive"></i> 一括エクスポート</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            全データを一括でダウンロードします。大量のデータの場合、処理に時間がかかる場合があります。
+                        </p>
+                        <div class="text-center">
+                            <button class="btn btn-dark btn-lg" onclick="exportAllData()" disabled>
+                                <i class="fas fa-archive"></i> 全データ一括ダウンロード
+                                <small class="d-block">(実装予定)</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-4">
+                <!-- エクスポート状況 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> エクスポート情報</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <h6>ファイル形式:</h6>
+                            <ul class="mb-3">
+                                <li>CSV (カンマ区切り)</li>
+                                <li>UTF-8 エンコーディング</li>
+                                <li>Excel で開ける形式</li>
+                                <li>ファイル名に日時を自動付与</li>
+                            </ul>
+                            
+                            <h6>データ範囲:</h6>
+                            <ul class="mb-3">
+                                <li>有効な受講生のみ</li>
+                                <li>すべての出欠席記録</li>
+                                <li>すべてのテスト結果</li>
+                                <li>統計データは自動計算</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ダウンロード履歴 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-history"></i> ダウンロード履歴</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="downloadHistory" class="small">
+                            <div class="text-muted">ダウンロード履歴はここに表示されます</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 利用ガイド -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-question-circle"></i> 利用ガイド</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <h6>Excel で開く場合:</h6>
+                            <ol class="mb-3">
+                                <li>ダウンロードしたCSVファイルを右クリック</li>
+                                <li>「プログラムから開く」→「Excel」を選択</li>
+                                <li>文字化けする場合は「データ」→「テキストファイル」から開く</li>
+                            </ol>
+                            
+                            <h6>データ活用例:</h6>
+                            <ul class="mb-0">
+                                <li>出席率の分析</li>
+                                <li>成績の統計処理</li>
+                                <li>保護者への報告書作成</li>
+                                <li>教育効果の測定</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function exportAttendance() {
+            const classId = document.getElementById('attendanceClassFilter').value;
+            const url = '/export/csv/attendance' + (classId ? '?classId=' + classId : '');
+            window.location.href = url;
+            trackDownload('attendance' + (classId ? ' (クラス別)' : ''));
+        }
+
+        function exportTestScores() {
+            const testId = document.getElementById('testFilter').value;
+            const url = '/export/csv/test-scores' + (testId ? '?testId=' + testId : '');
+            window.location.href = url;
+            trackDownload('test-scores' + (testId ? ' (テスト別)' : ''));
+        }
+
+        function exportAllData() {
+            alert('一括エクスポート機能は実装予定です。');
+        }
+
+        function trackDownload(dataType) {
+            const timestamp = new Date().toLocaleString('ja-JP');
+            addToHistory(`${timestamp}: ${dataType} をダウンロードしました`);
+        }
+
+        function addToHistory(message) {
+            const history = document.getElementById('downloadHistory');
+            const entry = document.createElement('div');
+            entry.className = 'border-bottom pb-1 mb-1';
+            entry.textContent = message;
+            
+            if (history.children.length === 1 && history.children[0].classList.contains('text-muted')) {
+                history.innerHTML = '';
+            }
+            
+            history.insertBefore(entry, history.firstChild);
+            
+            // 最新10件のみ保持
+            while (history.children.length > 10) {
+                history.removeChild(history.lastChild);
+            }
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            addToHistory(new Date().toLocaleString('ja-JP') + ': エクスポート画面を表示しました');
+        });
+    </script>
+</body>
+</html>

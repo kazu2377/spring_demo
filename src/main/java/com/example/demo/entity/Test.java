@@ -1,7 +1,9 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,11 +28,17 @@ public class Test {
     @Column(nullable = false)
     private LocalDateTime testDate;
     
+    @Column
+    private LocalTime testTime;
+    
     @Column(nullable = false)
     private Integer maxScore;
     
     @Column(nullable = false)
     private Integer passingScore;
+    
+    @Column
+    private Integer duration; // テスト制限時間（分）
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -103,6 +111,27 @@ public class Test {
         this.testDate = testDate;
     }
     
+    public void setTestDate(LocalDate testDate) {
+        if (testDate != null) {
+            if (this.testTime != null) {
+                this.testDate = testDate.atTime(this.testTime);
+            } else {
+                this.testDate = testDate.atStartOfDay();
+            }
+        }
+    }
+    
+    public LocalTime getTestTime() {
+        return testTime;
+    }
+    
+    public void setTestTime(LocalTime testTime) {
+        this.testTime = testTime;
+        if (this.testDate != null && testTime != null) {
+            this.testDate = this.testDate.toLocalDate().atTime(testTime);
+        }
+    }
+    
     public Integer getMaxScore() {
         return maxScore;
     }
@@ -117,6 +146,14 @@ public class Test {
     
     public void setPassingScore(Integer passingScore) {
         this.passingScore = passingScore;
+    }
+    
+    public Integer getDuration() {
+        return duration;
+    }
+    
+    public void setDuration(Integer duration) {
+        this.duration = duration;
     }
     
     public TestType getTestType() {
@@ -177,23 +214,5 @@ public class Test {
             .mapToInt(TestScore::getScore)
             .average()
             .orElse(0.0);
-    }
-    
-    public enum TestType {
-        MIDTERM("中間テスト"),
-        FINAL("期末テスト"),
-        QUIZ("小テスト"),
-        ASSIGNMENT("課題"),
-        PRACTICAL("実技テスト");
-        
-        private final String displayName;
-        
-        TestType(String displayName) {
-            this.displayName = displayName;
-        }
-        
-        public String getDisplayName() {
-            return displayName;
-        }
     }
 }

@@ -29,6 +29,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean enabled = true;
     
+    @Column(nullable = false)
+    private boolean active = true;
+    
     public User() {}
     
     public User(String username, String password, Role role) {
@@ -74,6 +77,14 @@ public class User implements UserDetails {
     
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+    
+    public boolean isActive() {
+        return active;
+    }
+    
+    public void setActive(boolean active) {
+        this.active = active;
     }
     
     // UserDetails implementation

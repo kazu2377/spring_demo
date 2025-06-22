@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データ管理 - 職業訓練校管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard">職業訓練校管理システム</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                <a class="nav-link" href="/students">受講生</a>
+                <a class="nav-link" href="/classes">クラス</a>
+                <a class="nav-link" href="/attendance">出欠席</a>
+                <a class="nav-link" href="/tests">テスト</a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-database"></i> データ管理</h2>
+            <a href="/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> ダッシュボードに戻る
+            </a>
+        </div>
+
+        <!-- 成功・エラーメッセージ -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- サンプルデータ初期化 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-magic"></i> サンプルデータ初期化</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            デモンストレーション用のサンプルデータを作成します。
+                            以下のデータが生成されます：
+                        </p>
+                        <ul class="mb-4">
+                            <li><strong>ユーザー:</strong> 管理者1名、講師4名、受講生20名</li>
+                            <li><strong>クラス:</strong> 4つの異なる科目のクラス</li>
+                            <li><strong>受講生:</strong> 各クラスに配置された受講生</li>
+                            <li><strong>出欠席記録:</strong> 過去2ヶ月分のリアルな出席データ</li>
+                            <li><strong>テスト:</strong> 各クラス3〜5個のテスト</li>
+                            <li><strong>成績:</strong> 各テストの現実的な成績データ</li>
+                        </ul>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>注意:</strong> 既にデータが存在する場合、重複作成は行われません。
+                        </div>
+                        
+                        <form th:action="@{/admin/data/initialize}" method="post" onsubmit="return confirmInitialize()">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-magic"></i> サンプルデータを作成
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- データクリア -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h5 class="mb-0 text-dark"><i class="fas fa-trash-alt"></i> 全データクリア</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            <strong class="text-danger">危険な操作:</strong> 
+                            システム内の全データ（管理者アカウント以外）を削除します。
+                        </p>
+                        <p class="mb-4 text-muted">
+                            この操作により以下のデータが完全に削除されます：
+                        </p>
+                        <ul class="mb-4 text-muted">
+                            <li>全ての受講生データ</li>
+                            <li>全てのクラスデータ</li>
+                            <li>全ての出欠席記録</li>
+                            <li>全てのテストと成績データ</li>
+                            <li>講師・受講生アカウント</li>
+                        </ul>
+                        
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>警告:</strong> この操作は取り消すことができません。実行前に必ずバックアップを取得してください。
+                        </div>
+                        
+                        <form th:action="@{/admin/data/clear}" method="post" onsubmit="return confirmClear()">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash-alt"></i> 全データを削除
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- サイドパネル -->
+            <div class="col-lg-4">
+                <!-- データ統計 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar"></i> 現在のデータ状況</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>ユーザー数:</span>
+                                <span id="userCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>受講生数:</span>
+                                <span id="studentCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>クラス数:</span>
+                                <span id="classCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>テスト数:</span>
+                                <span id="testCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>出席記録数:</span>
+                                <span id="attendanceCount">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>成績記録数:</span>
+                                <span id="scoreCount">-</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="refreshStats()">
+                            <i class="fas fa-sync"></i> 統計更新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 作成されるサンプルデータの詳細 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-list"></i> サンプルデータ詳細</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <h6>作成されるクラス:</h6>
+                            <ul class="mb-3">
+                                <li>Java基礎コース2024春 (25名定員)</li>
+                                <li>Web開発実践コース (20名定員)</li>
+                                <li>データベース設計コース (15名定員)</li>
+                                <li>システム開発プロジェクト (12名定員)</li>
+                            </ul>
+                            
+                            <h6>講師アカウント:</h6>
+                            <ul class="mb-3">
+                                <li>teacher1 (パスワード: teacher123)</li>
+                                <li>teacher2 (パスワード: teacher123)</li>
+                                <li>teacher3 (パスワード: teacher123)</li>
+                                <li>teacher4 (パスワード: teacher123)</li>
+                            </ul>
+                            
+                            <h6>受講生アカウント例:</h6>
+                            <ul class="mb-3">
+                                <li>yamada (パスワード: student123)</li>
+                                <li>tanaka (パスワード: student123)</li>
+                                <li>suzuki (パスワード: student123)</li>
+                                <li>... 他17名</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作ログ -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-history"></i> 操作履歴</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="operationLog" class="small">
+                            <div class="text-muted">操作履歴はここに表示されます</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function confirmInitialize() {
+            return confirm('サンプルデータを作成しますか？\n\nこの処理には数分かかる場合があります。');
+        }
+
+        function confirmClear() {
+            const firstConfirm = confirm('本当に全データを削除しますか？\n\nこの操作は取り消すことができません。');
+            if (!firstConfirm) return false;
+            
+            const secondConfirm = confirm('最終確認です。\n\n全てのデータが完全に削除されます。\n続行しますか？');
+            return secondConfirm;
+        }
+
+        function refreshStats() {
+            // 統計情報を更新する（実装予定）
+            addToLog('統計情報を更新しました');
+        }
+
+        function addToLog(message) {
+            const log = document.getElementById('operationLog');
+            const timestamp = new Date().toLocaleString('ja-JP');
+            const entry = document.createElement('div');
+            entry.className = 'border-bottom pb-1 mb-1';
+            entry.innerHTML = `<div class="fw-bold">${timestamp}</div><div>${message}</div>`;
+            
+            if (log.children.length === 1 && log.children[0].classList.contains('text-muted')) {
+                log.innerHTML = '';
+            }
+            
+            log.insertBefore(entry, log.firstChild);
+            
+            // 最新10件のみ保持
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            addToLog('データ管理画面を表示しました');
+        });
+    </script>
+</body>
+</html>

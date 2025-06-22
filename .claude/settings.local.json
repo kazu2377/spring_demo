@@ -5,7 +5,14 @@
       "Bash(curl:*)",
       "Bash(chmod:*)",
       "Bash(mvn clean:*)",
-      "Bash(./mvnw clean compile)"
+      "Bash(./mvnw clean compile)",
+      "Bash(java:*)",
+      "Bash(ls:*)",
+      "Bash(apt list:*)",
+      "Bash(export:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

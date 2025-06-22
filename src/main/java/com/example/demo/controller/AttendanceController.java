@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.entity.Attendance;
+import com.example.demo.entity.AttendanceStatus;
 import com.example.demo.entity.Student;
 import com.example.demo.entity.SchoolClass;
 import com.example.demo.entity.User;
@@ -70,7 +71,7 @@ public class AttendanceController {
             model.addAttribute("schoolClass", schoolClass);
             model.addAttribute("students", students);
             model.addAttribute("attendanceMap", attendanceMap);
-            model.addAttribute("attendanceStatuses", Attendance.AttendanceStatus.values());
+            model.addAttribute("attendanceStatuses", AttendanceStatus.values());
         }
         
         return "attendance/list";
@@ -100,7 +101,7 @@ public class AttendanceController {
                     Student student = studentService.getStudentById(studentId)
                         .orElseThrow(() -> new RuntimeException("受講生が見つかりません"));
                     
-                    Attendance.AttendanceStatus status = Attendance.AttendanceStatus.valueOf(value);
+                    AttendanceStatus status = AttendanceStatus.valueOf(value);
                     String notes = formParams.getOrDefault("notes_" + studentId, "");
                     
                     attendanceService.recordAttendance(student, schoolClass, date, status, notes, currentUser);
@@ -121,7 +122,7 @@ public class AttendanceController {
     @PostMapping("/bulk-create")
     public String createBulkAttendance(@RequestParam Long classId,
                                       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                                      @RequestParam Attendance.AttendanceStatus defaultStatus,
+                                      @RequestParam AttendanceStatus defaultStatus,
                                       Authentication authentication,
                                       RedirectAttributes redirectAttributes) {
         try {

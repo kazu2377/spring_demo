@@ -1,6 +1,7 @@
 package com.example.demo.repository;
 
 import com.example.demo.entity.Test;
+import com.example.demo.entity.TestType;
 import com.example.demo.entity.SchoolClass;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,9 +20,9 @@ public interface TestRepository extends JpaRepository<Test, Long> {
     
     List<Test> findBySchoolClassAndActiveTrue(SchoolClass schoolClass);
     
-    List<Test> findByTestType(Test.TestType testType);
+    List<Test> findByTestType(TestType testType);
     
-    List<Test> findBySchoolClassAndTestType(SchoolClass schoolClass, Test.TestType testType);
+    List<Test> findBySchoolClassAndTestType(SchoolClass schoolClass, TestType testType);
     
     @Query("SELECT t FROM Test t WHERE t.testDate BETWEEN :startDate AND :endDate AND t.active = true ORDER BY t.testDate")
     List<Test> findTestsInPeriod(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
@@ -41,4 +42,8 @@ public interface TestRepository extends JpaRepository<Test, Long> {
     long countBySchoolClass(SchoolClass schoolClass);
     
     long countBySchoolClassAndActiveTrue(SchoolClass schoolClass);
+    
+    long countByActiveTrue();
+    
+    List<Test> findBySchoolClassId(Long classId);
 }

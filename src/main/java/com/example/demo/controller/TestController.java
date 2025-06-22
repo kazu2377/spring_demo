@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.entity.Test;
+import com.example.demo.entity.TestType;
 import com.example.demo.entity.TestScore;
 import com.example.demo.entity.Student;
 import com.example.demo.entity.SchoolClass;
@@ -46,7 +47,7 @@ public class TestController {
     
     @GetMapping
     public String listTests(@RequestParam(value = "classId", required = false) Long classId,
-                           @RequestParam(value = "type", required = false) Test.TestType type,
+                           @RequestParam(value = "type", required = false) TestType type,
                            Model model) {
         
         List<Test> tests;
@@ -67,7 +68,7 @@ public class TestController {
         
         model.addAttribute("tests", tests);
         model.addAttribute("classes", schoolClassService.getActiveClasses());
-        model.addAttribute("testTypes", Test.TestType.values());
+        model.addAttribute("testTypes", TestType.values());
         model.addAttribute("selectedClassId", classId);
         model.addAttribute("selectedType", type);
         
@@ -93,7 +94,7 @@ public class TestController {
     public String showCreateForm(Model model) {
         model.addAttribute("test", new Test());
         model.addAttribute("classes", schoolClassService.getActiveClasses());
-        model.addAttribute("testTypes", Test.TestType.values());
+        model.addAttribute("testTypes", TestType.values());
         return "tests/create";
     }
     
@@ -122,7 +123,7 @@ public class TestController {
         
         model.addAttribute("test", test);
         model.addAttribute("classes", schoolClassService.getActiveClasses());
-        model.addAttribute("testTypes", Test.TestType.values());
+        model.addAttribute("testTypes", TestType.values());
         return "tests/edit";
     }
     

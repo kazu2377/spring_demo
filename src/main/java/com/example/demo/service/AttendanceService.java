@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.Attendance;
+import com.example.demo.entity.AttendanceStatus;
 import com.example.demo.entity.Student;
 import com.example.demo.entity.SchoolClass;
 import com.example.demo.entity.User;
@@ -57,7 +58,7 @@ public class AttendanceService {
     }
     
     public Attendance recordAttendance(Student student, SchoolClass schoolClass, LocalDate date, 
-                                     Attendance.AttendanceStatus status, String notes, User recordedBy) {
+                                     AttendanceStatus status, String notes, User recordedBy) {
         
         Optional<Attendance> existingAttendance = attendanceRepository.findByStudentAndAttendanceDate(student, date);
         
@@ -75,7 +76,7 @@ public class AttendanceService {
         }
     }
     
-    public Attendance updateAttendance(Long id, Attendance.AttendanceStatus status, String notes, User recordedBy) {
+    public Attendance updateAttendance(Long id, AttendanceStatus status, String notes, User recordedBy) {
         return attendanceRepository.findById(id)
             .map(attendance -> {
                 attendance.setStatus(status);
@@ -127,7 +128,7 @@ public class AttendanceService {
     }
     
     public void createBulkAttendance(List<Student> students, SchoolClass schoolClass, LocalDate date, 
-                                   Attendance.AttendanceStatus defaultStatus, User recordedBy) {
+                                   AttendanceStatus defaultStatus, User recordedBy) {
         for (Student student : students) {
             if (!hasAttendanceRecord(student, date)) {
                 recordAttendance(student, schoolClass, date, defaultStatus, "", recordedBy);

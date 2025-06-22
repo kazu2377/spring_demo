@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.entity.Test;
+import com.example.demo.entity.TestType;
 import com.example.demo.entity.SchoolClass;
 import com.example.demo.entity.User;
 import com.example.demo.repository.TestRepository;
@@ -35,11 +36,11 @@ public class TestService {
         return testRepository.findBySchoolClassAndActiveTrue(schoolClass);
     }
     
-    public List<Test> getTestsByType(Test.TestType testType) {
+    public List<Test> getTestsByType(TestType testType) {
         return testRepository.findByTestType(testType);
     }
     
-    public List<Test> getTestsByClassAndType(SchoolClass schoolClass, Test.TestType testType) {
+    public List<Test> getTestsByClassAndType(SchoolClass schoolClass, TestType testType) {
         return testRepository.findBySchoolClassAndTestType(schoolClass, testType);
     }
     
