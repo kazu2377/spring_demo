@@ -1,7 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.entity.Role;
-import com.example.demo.service.UserService;
+import com.example.demo.service.DataInitializationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,7 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class DemoApplication implements CommandLineRunner {
 
     @Autowired
-    private UserService userService;
+    private DataInitializationService dataInitializationService;
 
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
@@ -19,14 +18,12 @@ public class DemoApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (!userService.getUserByUsername("admin").isPresent()) {
-            userService.createUser("admin", "admin", Role.ADMIN);
-            System.out.println("デフォルト管理者ユーザーを作成しました: admin/admin");
-        }
-        
-        if (!userService.getUserByUsername("user").isPresent()) {
-            userService.createUser("user", "user", Role.USER);
-            System.out.println("デフォルト一般ユーザーを作成しました: user/user");
-        }
+        // サンプルデータの初期化を実行
+        dataInitializationService.initializeSampleData();
+        System.out.println("サンプルデータの初期化が完了しました。");
+        System.out.println("ログイン情報:");
+        System.out.println("  管理者: admin / admin123");
+        System.out.println("  講師: teacher1 / teacher123");
+        System.out.println("  受講生: yamada / student123");
     }
 }

@@ -12,7 +12,15 @@
       "Bash(export:*)",
       "Bash(rg:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(rm:*)",
+      "Bash(./mvnw:*)",
+      "Bash(./mvnw:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

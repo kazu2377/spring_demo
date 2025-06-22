@@ -60,6 +60,7 @@ public class TestScore {
 
     public TestScore() {
         this.createdAt = LocalDateTime.now();
+        this.recordedAt = LocalDateTime.now();
     }
 
     public TestScore(Student student, Test test, Integer score) {
